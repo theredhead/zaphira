@@ -267,7 +267,7 @@
 - [x] Provide clear blocking states.
 - [x] Provide Retry action.
 - [x] Provide Settings action.
-- [ ] Preserve onboarding state when returning from settings.
+- [x] Preserve onboarding state when returning from settings.
 
 **Done when:**
 

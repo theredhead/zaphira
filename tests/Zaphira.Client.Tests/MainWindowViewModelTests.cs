@@ -31,6 +31,37 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ReturnFromSettingsRestoresSetupPage()
+    {
+        MainWindowViewModel viewModel = new(ZaphiraClientConfiguration.Default());
+
+        viewModel.ShowSettingsCommand.Execute(null);
+        viewModel.ReturnFromSettingsCommand.Execute(null);
+
+        Assert.Equal(ClientPage.FirstRun, viewModel.SelectedPage);
+        Assert.False(viewModel.IsSettingsPageSelected);
+    }
+
+    [Fact]
+    public void ReturnFromSettingsRestoresChatPage()
+    {
+        MainWindowViewModel viewModel = new(
+            new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
+            new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
+            new EmptyChatApiClient(
+                conversations: [],
+                models: [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])]));
+
+        viewModel.ShowSettingsCommand.Execute(null);
+        Assert.True(viewModel.IsSettingsPageSelected);
+
+        viewModel.ReturnFromSettingsCommand.Execute(null);
+
+        Assert.Equal(ClientPage.Chat, viewModel.SelectedPage);
+        Assert.False(viewModel.IsSettingsPageSelected);
+    }
+
+    [Fact]
     public async Task InitializeSkipsProbeWhenSetupIsRequired()
     {
         FakeBackendConnectionProbe probe = new(BackendConnectionProbeResult.Connected);

@@ -9,6 +9,7 @@ namespace Zaphira.Client.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private ClientPage selectedPage;
+    private ClientPage pageBeforeSettings;
     private BackendConnectionState backendConnectionState;
 
     public MainWindowViewModel()
@@ -45,6 +46,7 @@ public partial class MainWindowViewModel : ViewModelBase
             ? BackendConnectionState.SetupRequired
             : BackendConnectionState.Connecting;
         selectedPage = configuration.StartsInFirstRun ? ClientPage.FirstRun : ClientPage.Chat;
+        pageBeforeSettings = selectedPage;
         ChatWorkspace = new ChatWorkspaceViewModel(chatApiClient);
     }
 
@@ -105,9 +107,12 @@ public partial class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref selectedPage, value))
             {
                 OnPropertyChanged(nameof(SelectedPageTitle));
+                OnPropertyChanged(nameof(IsSettingsPageSelected));
             }
         }
     }
+
+    public bool IsSettingsPageSelected => SelectedPage == ClientPage.Settings;
 
     public string SelectedPageTitle => SelectedPage switch
     {
@@ -124,7 +129,18 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ShowChat() => SelectedPage = ClientPage.Chat;
 
     [RelayCommand]
-    private void ShowSettings() => SelectedPage = ClientPage.Settings;
+    private void ShowSettings()
+    {
+        if (SelectedPage != ClientPage.Settings)
+        {
+            pageBeforeSettings = SelectedPage;
+        }
+
+        SelectedPage = ClientPage.Settings;
+    }
+
+    [RelayCommand]
+    private void ReturnFromSettings() => SelectedPage = pageBeforeSettings;
 
     [RelayCommand]
     public async Task InitializeAsync(CancellationToken cancellationToken)
