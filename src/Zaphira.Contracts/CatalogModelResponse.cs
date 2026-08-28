@@ -6,12 +6,18 @@ public sealed record CatalogModelResponse
         string id,
         string displayName,
         IReadOnlyList<string> tags,
-        IReadOnlyList<string> purposes)
+        IReadOnlyList<string> purposes,
+        string compatibilityStatus,
+        string compatibilityConfidence,
+        string matchExplanation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(tags);
         ArgumentNullException.ThrowIfNull(purposes);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compatibilityStatus);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compatibilityConfidence);
+        ArgumentException.ThrowIfNullOrWhiteSpace(matchExplanation);
 
         string[] materializedTags = tags.ToArray();
         if (materializedTags.Any(tag => tag is null))
@@ -29,6 +35,9 @@ public sealed record CatalogModelResponse
         DisplayName = displayName;
         Tags = materializedTags;
         Purposes = materializedPurposes;
+        CompatibilityStatus = compatibilityStatus;
+        CompatibilityConfidence = compatibilityConfidence;
+        MatchExplanation = matchExplanation;
     }
 
     public string Id { get; }
@@ -38,4 +47,10 @@ public sealed record CatalogModelResponse
     public IReadOnlyList<string> Tags { get; }
 
     public IReadOnlyList<string> Purposes { get; }
+
+    public string CompatibilityStatus { get; }
+
+    public string CompatibilityConfidence { get; }
+
+    public string MatchExplanation { get; }
 }

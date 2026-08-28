@@ -17,16 +17,31 @@ internal static class ModelCatalogApiEndpoints
 
     private static Task<IResult> LoadCatalogAsync(
         ModelCatalogService modelCatalogService,
+        CatalogSearchService catalogSearchService,
+        HttpContext context,
         CancellationToken cancellationToken) =>
-        LoadCatalogResultAsync(modelCatalogService, forceSync: false, cancellationToken);
+        LoadCatalogResultAsync(
+            modelCatalogService,
+            catalogSearchService,
+            CreateSearchRequest(context),
+            forceSync: false,
+            cancellationToken);
 
     private static Task<IResult> SyncCatalogAsync(
         ModelCatalogService modelCatalogService,
+        CatalogSearchService catalogSearchService,
         CancellationToken cancellationToken) =>
-        LoadCatalogResultAsync(modelCatalogService, forceSync: true, cancellationToken);
+        LoadCatalogResultAsync(
+            modelCatalogService,
+            catalogSearchService,
+            CatalogSearchRequest.All(),
+            forceSync: true,
+            cancellationToken);
 
     private static async Task<IResult> LoadCatalogResultAsync(
         ModelCatalogService modelCatalogService,
+        CatalogSearchService catalogSearchService,
+        CatalogSearchRequest searchRequest,
         bool forceSync,
         CancellationToken cancellationToken)
     {
@@ -36,17 +51,38 @@ internal static class ModelCatalogApiEndpoints
             return Results.Json(ErrorResponse.CatalogUnavailable(), statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
+        IReadOnlyList<CatalogModelSearchResult> searchResults = catalogSearchService.Search(result.Models, searchRequest);
+
         return Results.Ok(new ModelCatalogResponse(
             result.IsFromCache,
             result.Message,
             result.Suggestion,
-            result.Models.Select(ToResponse).ToArray()));
+            searchResults.Select(ToResponse).ToArray()));
     }
 
-    private static CatalogModelResponse ToResponse(CatalogModelSummary model) =>
+    private static CatalogSearchRequest CreateSearchRequest(HttpContext context)
+    {
+        string query = context.Request.Query["query"].ToString();
+        List<CatalogModelPurpose> purposes = [];
+        foreach (string? rawPurposeValue in context.Request.Query["purpose"])
+        {
+            string purposeValue = rawPurposeValue ?? string.Empty;
+            if (Enum.TryParse(purposeValue, ignoreCase: true, out CatalogModelPurpose purpose))
+            {
+                purposes.Add(purpose);
+            }
+        }
+
+        return new CatalogSearchRequest(query, purposes);
+    }
+
+    private static CatalogModelResponse ToResponse(CatalogModelSearchResult result) =>
         new(
-            model.Id,
-            model.DisplayName,
-            model.Tags,
-            model.Purposes.Select(purpose => purpose.ToString()).ToArray());
+            result.Model.Id,
+            result.Model.DisplayName,
+            result.Model.Tags,
+            result.Model.Purposes.Select(purpose => purpose.ToString()).ToArray(),
+            result.CompatibilityStatus.ToString(),
+            result.CompatibilityConfidence.ToString(),
+            result.MatchExplanation);
 }

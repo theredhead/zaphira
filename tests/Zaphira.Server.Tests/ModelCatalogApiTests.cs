@@ -34,6 +34,53 @@ public sealed class ModelCatalogApiTests
         CatalogModelResponse model = Assert.Single(response.Models);
         Assert.Equal("microsoft/phi-4", model.Id);
         Assert.Contains("GeneralChat", model.Purposes);
+        Assert.Equal("DirectlyUsable", model.CompatibilityStatus);
+        Assert.Equal("Medium", model.CompatibilityConfidence);
+        Assert.Equal("Matched catalog filters.", model.MatchExplanation);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task GetCatalogFiltersByQuery()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(
+            homeDirectory,
+            new FakeCatalogSource(CatalogSourceResult.Available(CreateSearchModels())),
+            new FakeModelCatalogCache(CatalogCacheLookup.NotFound()));
+        using HttpClient client = factory.CreateClient();
+
+        ModelCatalogResponse? response = await client.GetFromJsonAsync<ModelCatalogResponse>(
+            "/api/model-catalog/?query=coder");
+
+        Assert.NotNull(response);
+        CatalogModelResponse model = Assert.Single(response.Models);
+        Assert.Equal("Qwen/Qwen2.5-Coder-7B-Instruct", model.Id);
+        Assert.Equal("Matched name or id: coder.", model.MatchExplanation);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task GetCatalogFiltersByPurpose()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(
+            homeDirectory,
+            new FakeCatalogSource(CatalogSourceResult.Available(CreateSearchModels())),
+            new FakeModelCatalogCache(CatalogCacheLookup.NotFound()));
+        using HttpClient client = factory.CreateClient();
+
+        ModelCatalogResponse? response = await client.GetFromJsonAsync<ModelCatalogResponse>(
+            "/api/model-catalog/?purpose=Coding");
+
+        Assert.NotNull(response);
+        CatalogModelResponse model = Assert.Single(response.Models);
+        Assert.Equal("Qwen/Qwen2.5-Coder-7B-Instruct", model.Id);
+        Assert.Contains("Coding", model.Purposes);
 
         DeleteDirectoryIfItExists(homeDirectory);
     }
@@ -107,6 +154,16 @@ public sealed class ModelCatalogApiTests
 
     private static string CreateTemporaryHomeDirectory() =>
         Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+    private static IReadOnlyList<CatalogModelSummary> CreateSearchModels() =>
+    [
+        CatalogModel,
+        new CatalogModelSummary(
+            "Qwen/Qwen2.5-Coder-7B-Instruct",
+            "Qwen2.5-Coder-7B-Instruct",
+            ["code"],
+            [CatalogModelPurpose.Coding])
+    ];
 
     private static void DeleteDirectoryIfItExists(string path)
     {

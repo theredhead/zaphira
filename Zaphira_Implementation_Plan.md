@@ -284,11 +284,11 @@
 - [x] Add 24-hour normal cache policy.
 - [x] Add Sync Now operation.
 - [x] Define purpose/capability taxonomy.
-- [ ] Implement search by name.
-- [ ] Implement purpose/capability filters.
-- [ ] Represent compatibility confidence.
-- [ ] Distinguish directly usable, possibly usable, unsupported, and unknown models.
-- [ ] Explain why a model matched where practical.
+- [x] Implement search by name.
+- [x] Implement purpose/capability filters.
+- [x] Represent compatibility confidence.
+- [x] Distinguish directly usable, possibly usable, unsupported, and unknown models.
+- [x] Explain why a model matched where practical.
 - [x] Preserve cached catalog access offline.
 
 **Done when:**

@@ -49,6 +49,7 @@ builder.Services.AddSingleton(serviceProvider =>
         serviceProvider.GetRequiredService<ICatalogSource>(),
         serviceProvider.GetRequiredService<IModelCatalogCache>(),
         TimeProvider.System));
+builder.Services.AddSingleton<CatalogSearchService>();
 
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
