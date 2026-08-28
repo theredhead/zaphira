@@ -50,8 +50,8 @@
 - [x] Add analyzer rules.
 - [x] Add test naming conventions.
 - [x] Add visibility/null-safety guidance to code review checklist.
-- [ ] Decide how expected failures are represented at application boundaries.
-- [ ] Establish async/cancellation conventions.
+- [x] Decide how expected failures are represented at application boundaries.
+- [x] Establish async/cancellation conventions.
 
 **Done when:**
 
@@ -90,14 +90,14 @@
 - [x] Add health endpoint.
 - [ ] Add structured logging.
 - [ ] Add server configuration loading.
-- [ ] Create server data directory under `~/.zaphira/server/`.
-- [ ] Add graceful startup and shutdown behavior.
+- [x] Create server data directory under `~/.zaphira/server/`.
+- [x] Add graceful startup and shutdown behavior.
 - [ ] Add basic error response conventions.
 - [ ] Add server tests for health/config behavior.
 
 **Done when:**
 
-- [ ] The server can run headlessly.
+- [x] The server can run headlessly.
 - [ ] The server exposes a reachable health endpoint.
 - [ ] Server logs are useful without recording conversation content.
 
