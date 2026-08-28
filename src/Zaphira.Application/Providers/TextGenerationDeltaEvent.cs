@@ -4,7 +4,7 @@ public sealed record TextGenerationDeltaEvent : ProviderGenerationEvent
 {
     public TextGenerationDeltaEvent(string text)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        ArgumentNullException.ThrowIfNull(text);
 
         Text = text;
     }

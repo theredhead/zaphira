@@ -200,20 +200,20 @@
 
 ## 10. Ollama Provider
 
-- [ ] Detect Ollama availability.
-- [ ] Decide whether CLI, HTTP API, or both are used internally by the provider.
-- [ ] List installed Ollama models.
-- [ ] Inspect model metadata where available.
-- [ ] Generate a basic response.
-- [ ] Stream response output.
-- [ ] Propagate cancellation.
-- [ ] Surface provider errors clearly.
-- [ ] Add integration tests gated on local Ollama availability.
+- [x] Detect Ollama availability.
+- [x] Decide whether CLI, HTTP API, or both are used internally by the provider.
+- [x] List installed Ollama models.
+- [x] Inspect model metadata where available.
+- [x] Generate a basic response.
+- [x] Stream response output.
+- [x] Propagate cancellation.
+- [x] Surface provider errors clearly.
+- [x] Add integration tests gated on local Ollama availability.
 
 **Done when:**
 
-- [ ] An installed Ollama model can produce a streamed response through the provider abstraction.
-- [ ] Missing or unusable Ollama is represented as a clear provider availability state.
+- [x] An installed Ollama model can produce a streamed response through the provider abstraction.
+- [x] Missing or unusable Ollama is represented as a clear provider availability state.
 
 ---
 
