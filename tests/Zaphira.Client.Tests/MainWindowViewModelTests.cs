@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
+using Zaphira.Client.ModelCatalog;
 using Zaphira.Client.Configuration;
 using Zaphira.Client.ViewModels;
 using Zaphira.Contracts;
@@ -50,7 +51,8 @@ public sealed class MainWindowViewModelTests
             new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
             new EmptyChatApiClient(
                 conversations: [],
-                models: [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])]));
+                models: [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])]),
+            new EmptyModelCatalogApiClient());
 
         viewModel.ShowSettingsCommand.Execute(null);
         Assert.True(viewModel.IsSettingsPageSelected);
@@ -68,7 +70,8 @@ public sealed class MainWindowViewModelTests
         MainWindowViewModel viewModel = new(
             ZaphiraClientConfiguration.Default(),
             probe,
-            new EmptyChatApiClient());
+            new EmptyChatApiClient(),
+            new EmptyModelCatalogApiClient());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -82,7 +85,8 @@ public sealed class MainWindowViewModelTests
         MainWindowViewModel viewModel = new(
             new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
             new FakeBackendConnectionProbe(BackendConnectionProbeResult.Unavailable),
-            new EmptyChatApiClient());
+            new EmptyChatApiClient(),
+            new EmptyModelCatalogApiClient());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -115,7 +119,8 @@ public sealed class MainWindowViewModelTests
                 models:
                 [
                     new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])
-                ]));
+                ]),
+            new EmptyModelCatalogApiClient());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -135,7 +140,8 @@ public sealed class MainWindowViewModelTests
                 models: [],
                 modelListFailure: new ChatApiException(
                     503,
-                    ErrorResponse.ProviderUnavailable())));
+                    ErrorResponse.ProviderUnavailable())),
+            new EmptyModelCatalogApiClient());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -153,7 +159,8 @@ public sealed class MainWindowViewModelTests
         MainWindowViewModel viewModel = new(
             new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
             new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
-            new EmptyChatApiClient());
+            new EmptyChatApiClient(),
+            new EmptyModelCatalogApiClient());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -266,5 +273,33 @@ public sealed class MainWindowViewModelTests
 
         public Task CancelMessageAsync(Guid conversationId, Guid assistantMessageId, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class EmptyModelCatalogApiClient : IModelCatalogApiClient
+    {
+        public Task<ModelCatalogResponse> GetCatalogAsync(
+            string query,
+            string purpose,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new ModelCatalogResponse(
+                isFromCache: false,
+                "Catalog loaded.",
+                "Search or filter the catalog.",
+                []));
+        }
+
+        public Task<ModelCatalogResponse> SyncCatalogAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new ModelCatalogResponse(
+                isFromCache: false,
+                "Catalog loaded.",
+                "Search or filter the catalog.",
+                []));
+        }
     }
 }

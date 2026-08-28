@@ -262,8 +262,8 @@
 - [x] Detect backend unavailable.
 - [x] Detect no provider/runtime available.
 - [x] Detect no installed model.
-- [ ] Detect offline with no cached catalog.
-- [ ] Detect catalog unavailable.
+- [x] Detect offline with no cached catalog.
+- [x] Detect catalog unavailable.
 - [x] Provide clear blocking states.
 - [x] Provide Retry action.
 - [x] Provide Settings action.
@@ -271,8 +271,8 @@
 
 **Done when:**
 
-- [ ] Missing dependencies never look like a broken app.
-- [ ] The user gets a clear explanation and the next sensible action.
+- [x] Missing dependencies never look like a broken app.
+- [x] The user gets a clear explanation and the next sensible action.
 
 ---
 
@@ -293,8 +293,8 @@
 
 **Done when:**
 
-- [ ] Users can find potentially useful models in-app by purpose and practical fit.
-- [ ] Hugging Face is a source strategy, not the product boundary.
+- [x] Users can find potentially useful models in-app by purpose and practical fit.
+- [x] Hugging Face is a source strategy, not the product boundary.
 
 ---
 

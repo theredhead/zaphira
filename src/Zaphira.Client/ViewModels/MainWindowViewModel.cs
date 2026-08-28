@@ -2,6 +2,7 @@
 using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
+using Zaphira.Client.ModelCatalog;
 using Zaphira.Contracts;
 
 namespace Zaphira.Client.ViewModels;
@@ -27,6 +28,10 @@ public partial class MainWindowViewModel : ViewModelBase
             new HttpChatApiClient(new HttpClient
             {
                 BaseAddress = configuration.BackendAddress
+            }),
+            new HttpModelCatalogApiClient(new HttpClient
+            {
+                BaseAddress = configuration.BackendAddress
             }))
     {
     }
@@ -34,11 +39,13 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(
         ZaphiraClientConfiguration configuration,
         IBackendConnectionProbe backendConnectionProbe,
-        IChatApiClient chatApiClient)
+        IChatApiClient chatApiClient,
+        IModelCatalogApiClient modelCatalogApiClient)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(backendConnectionProbe);
         ArgumentNullException.ThrowIfNull(chatApiClient);
+        ArgumentNullException.ThrowIfNull(modelCatalogApiClient);
 
         BackendConnectionProbe = backendConnectionProbe;
         BackendAddressText = configuration.BackendAddress.ToString();
@@ -48,6 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase
         selectedPage = configuration.StartsInFirstRun ? ClientPage.FirstRun : ClientPage.Chat;
         pageBeforeSettings = selectedPage;
         ChatWorkspace = new ChatWorkspaceViewModel(chatApiClient);
+        ModelCatalogWorkspace = new ModelCatalogWorkspaceViewModel(modelCatalogApiClient);
     }
 
     public string ApplicationTitle { get; } = "Zaphira";
@@ -76,6 +84,8 @@ public partial class MainWindowViewModel : ViewModelBase
         or BackendConnectionState.NoInstalledModel;
 
     public ChatWorkspaceViewModel ChatWorkspace { get; }
+
+    public ModelCatalogWorkspaceViewModel ModelCatalogWorkspace { get; }
 
     private IBackendConnectionProbe BackendConnectionProbe { get; }
 
@@ -107,10 +117,16 @@ public partial class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref selectedPage, value))
             {
                 OnPropertyChanged(nameof(SelectedPageTitle));
+                OnPropertyChanged(nameof(IsFirstRunPageSelected));
+                OnPropertyChanged(nameof(IsChatPageSelected));
                 OnPropertyChanged(nameof(IsSettingsPageSelected));
             }
         }
     }
+
+    public bool IsFirstRunPageSelected => SelectedPage == ClientPage.FirstRun;
+
+    public bool IsChatPageSelected => SelectedPage == ClientPage.Chat;
 
     public bool IsSettingsPageSelected => SelectedPage == ClientPage.Settings;
 

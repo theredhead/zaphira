@@ -131,10 +131,14 @@
                          Text="{Binding ChatWorkspace.ActiveModelId}"
                          PlaceholderText="Model"
                          VerticalAlignment="Top"
-                         IsVisible="{Binding !IsSettingsPageSelected}"
+                         IsVisible="{Binding IsChatPageSelected}"
                          TabIndex="10"
                          AutomationProperties.Name="Model"/>
-                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                <Grid Grid.Row="1"
+                      Grid.ColumnSpan="2"
+                      ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                      ColumnSpacing="8"
+                      IsVisible="{Binding IsChatPageSelected}">
                     <TextBox Text="{Binding ChatWorkspace.SelectedConversationTitle}"
                              PlaceholderText="Conversation title"
                              TabIndex="11"
@@ -160,7 +164,70 @@
                 </Grid>
             </Grid>
 
-            <Border Grid.Row="1" BorderThickness="1" Padding="0">
+            <StackPanel Grid.Row="1"
+                        Spacing="8"
+                        IsVisible="{Binding IsFirstRunPageSelected}">
+                <TextBlock Text="Setup required"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding AvailabilitySuggestionText}"
+                           TextWrapping="Wrap"/>
+                <Button Content="Settings"
+                        Command="{Binding ShowSettingsCommand}"
+                        HorizontalAlignment="Left"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1"
+                          IsVisible="{Binding IsSettingsPageSelected}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,180,Auto,Auto" ColumnSpacing="8">
+                        <TextBox Text="{Binding ModelCatalogWorkspace.SearchText}"
+                                 PlaceholderText="Search models"
+                                 AutomationProperties.Name="Search models"/>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding ModelCatalogWorkspace.PurposeOptions}"
+                                  SelectedItem="{Binding ModelCatalogWorkspace.SelectedPurpose}"
+                                  AutomationProperties.Name="Purpose"/>
+                        <Button Grid.Column="2"
+                                Content="Search"
+                                Command="{Binding ModelCatalogWorkspace.SearchCommand}"/>
+                        <Button Grid.Column="3"
+                                Content="Sync Now"
+                                Command="{Binding ModelCatalogWorkspace.SyncNowCommand}"/>
+                    </Grid>
+                    <TextBlock Text="{Binding ModelCatalogWorkspace.StatusText}"
+                               TextWrapping="Wrap"/>
+                    <ItemsControl ItemsSource="{Binding ModelCatalogWorkspace.Models}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:CatalogModelItemViewModel">
+                                <Border BorderThickness="1"
+                                        Padding="12"
+                                        Margin="0,0,0,8"
+                                        CornerRadius="6">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Id}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding PurposesText}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding CompatibilityText}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding MatchExplanation}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="1"
+                    BorderThickness="1"
+                    Padding="0"
+                    IsVisible="{Binding IsChatPageSelected}">
                 <ScrollViewer>
                     <ItemsControl ItemsSource="{Binding ChatWorkspace.Messages}" Margin="16">
                         <ItemsControl.ItemTemplate>
@@ -267,7 +334,10 @@
                 </ScrollViewer>
             </Border>
 
-            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <Grid Grid.Row="2"
+                  ColumnDefinitions="*,Auto,Auto"
+                  ColumnSpacing="8"
+                  IsVisible="{Binding IsChatPageSelected}">
                 <TextBox Text="{Binding ChatWorkspace.ComposerText}"
                          PlaceholderText="Message"
                          AcceptsReturn="True"

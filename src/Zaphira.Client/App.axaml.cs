@@ -5,6 +5,7 @@ using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
 using Zaphira.Client.Logging;
+using Zaphira.Client.ModelCatalog;
 using Zaphira.Client.Security;
 using Zaphira.Client.Storage;
 using Zaphira.Client.ViewModels;
@@ -35,7 +36,8 @@ public partial class App : Application
         HttpClient backendHttpClient = await CreateBackendHttpClientAsync(configuration);
         IBackendConnectionProbe backendConnectionProbe = new HttpBackendConnectionProbe(backendHttpClient);
         IChatApiClient chatApiClient = new HttpChatApiClient(backendHttpClient);
-        MainWindowViewModel viewModel = new(configuration, backendConnectionProbe, chatApiClient);
+        IModelCatalogApiClient modelCatalogApiClient = new HttpModelCatalogApiClient(backendHttpClient);
+        MainWindowViewModel viewModel = new(configuration, backendConnectionProbe, chatApiClient, modelCatalogApiClient);
         MainWindow mainWindow = new()
         {
             DataContext = viewModel,
