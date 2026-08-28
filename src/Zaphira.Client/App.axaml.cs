@@ -22,35 +22,44 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            ZaphiraClientConfiguration configuration = LoadConfiguration();
-            IChatApiClient chatApiClient = CreateChatApiClient(configuration);
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(configuration, chatApiClient),
-            };
+            _ = InitializeDesktopAsync(desktop);
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static ZaphiraClientConfiguration LoadConfiguration()
+    private static async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        ZaphiraClientConfiguration configuration = await LoadConfigurationAsync();
+        IChatApiClient chatApiClient = await CreateChatApiClientAsync(configuration);
+        MainWindow mainWindow = new()
+        {
+            DataContext = new MainWindowViewModel(configuration, chatApiClient),
+        };
+
+        desktop.MainWindow = mainWindow;
+        mainWindow.Show();
+        mainWindow.Activate();
+    }
+
+    private static async Task<ZaphiraClientConfiguration> LoadConfigurationAsync()
     {
         ZaphiraClientDataDirectories dataDirectories = ZaphiraClientDataDirectories.ForCurrentUser();
         ZaphiraClientConfigurationLoader loader = new(dataDirectories);
         ZaphiraClientStartupLogger logger = new(dataDirectories);
 
-        ZaphiraClientConfiguration configuration = loader.LoadOrCreateAsync(CancellationToken.None).GetAwaiter().GetResult();
-        logger.LogStartupAsync(configuration, CancellationToken.None).GetAwaiter().GetResult();
+        ZaphiraClientConfiguration configuration = await loader.LoadOrCreateAsync(CancellationToken.None);
+        await logger.LogStartupAsync(configuration, CancellationToken.None);
 
         return configuration;
     }
 
-    private static IChatApiClient CreateChatApiClient(ZaphiraClientConfiguration configuration)
+    private static async Task<IChatApiClient> CreateChatApiClientAsync(ZaphiraClientConfiguration configuration)
     {
         ZaphiraClientDataDirectories dataDirectories = ZaphiraClientDataDirectories.ForCurrentUser();
         TrustedBackendConnectionStore connectionStore = new(dataDirectories);
         IReadOnlyList<TrustedBackendConnection> trustedConnections =
-            connectionStore.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+            await connectionStore.LoadAsync(CancellationToken.None);
         BackendCertificateTrust certificateTrust = new(trustedConnections);
 
         return new HttpChatApiClient(new HttpClient(certificateTrust.CreateHttpClientHandler(configuration.BackendAddress))
