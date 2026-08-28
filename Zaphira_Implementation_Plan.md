@@ -278,12 +278,12 @@
 
 ## 14. Model Finder and Catalog
 
-- [ ] Create catalog-source abstraction.
-- [ ] Implement Hugging Face catalog source.
+- [x] Create catalog-source abstraction.
+- [x] Implement Hugging Face catalog source.
 - [ ] Cache catalog metadata locally.
 - [ ] Add 24-hour normal cache policy.
 - [ ] Add Sync Now operation.
-- [ ] Define purpose/capability taxonomy.
+- [x] Define purpose/capability taxonomy.
 - [ ] Implement search by name.
 - [ ] Implement purpose/capability filters.
 - [ ] Represent compatibility confidence.
