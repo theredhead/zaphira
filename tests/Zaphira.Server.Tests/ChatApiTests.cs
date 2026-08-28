@@ -38,6 +38,93 @@ public sealed class ChatApiTests
     }
 
     [Fact]
+    public async Task RenameConversationUpdatesConversationTitle()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+        ConversationResponse conversation = await CreateConversationAsync(client);
+
+        using HttpResponseMessage response = await client.PatchAsJsonAsync(
+            $"/api/conversations/{conversation.Id}",
+            new UpdateConversationRequest("Renamed"));
+        ConversationResponse? renamed = await response.Content.ReadFromJsonAsync<ConversationResponse>();
+        ConversationListResponse? list = await client.GetFromJsonAsync<ConversationListResponse>("/api/conversations");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(renamed);
+        Assert.Equal("Renamed", renamed.Title);
+        Assert.NotNull(list);
+        Assert.Equal("Renamed", Assert.Single(list.Conversations).Title);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task DeleteConversationRemovesConversationAndMessages()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+        ConversationResponse conversation = await CreateConversationAsync(client);
+        await SendMessageAsync(client, conversation.Id);
+
+        using HttpResponseMessage response = await client.DeleteAsync($"/api/conversations/{conversation.Id}");
+        ConversationListResponse? list = await client.GetFromJsonAsync<ConversationListResponse>("/api/conversations");
+        using HttpResponseMessage messagesResponse = await client.GetAsync($"/api/conversations/{conversation.Id}/messages");
+        ErrorResponse? error = await messagesResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.NotNull(list);
+        Assert.Empty(list.Conversations);
+        Assert.Equal(HttpStatusCode.NotFound, messagesResponse.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("conversation_not_found", error.Code);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task RenameConversationReturnsNotFoundForMissingConversation()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage response = await client.PatchAsJsonAsync(
+            $"/api/conversations/{Guid.NewGuid()}",
+            new UpdateConversationRequest("Renamed"));
+        ErrorResponse? error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("conversation_not_found", error.Code);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task DeleteConversationReturnsNotFoundForMissingConversation()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage response = await client.DeleteAsync($"/api/conversations/{Guid.NewGuid()}");
+        ErrorResponse? error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("conversation_not_found", error.Code);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
     public async Task SendMessagePersistsUserAndPendingAssistantMessages()
     {
         string homeDirectory = CreateTemporaryHomeDirectory();

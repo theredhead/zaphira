@@ -8,6 +8,13 @@ public interface IChatApiClient
 
     Task<ConversationResponse> CreateConversationAsync(string title, CancellationToken cancellationToken);
 
+    Task<ConversationResponse> RenameConversationAsync(
+        Guid conversationId,
+        string title,
+        CancellationToken cancellationToken);
+
+    Task DeleteConversationAsync(Guid conversationId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ChatMessageResponse>> GetMessagesAsync(Guid conversationId, CancellationToken cancellationToken);
 
     Task<SendMessageResponse> SendMessageAsync(

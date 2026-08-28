@@ -101,6 +101,56 @@ public sealed class ChatWorkspaceViewModelTests
     }
 
     [Fact]
+    public async Task RenameConversationUpdatesSelectedConversationTitle()
+    {
+        Guid conversationId = Guid.NewGuid();
+        FakeChatApiClient chatApiClient = new(
+            conversations:
+            [
+                new ConversationResponse(conversationId, "Research", "Hello", 1, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+            ],
+            renamedConversation: new ConversationResponse(
+                conversationId,
+                "Renamed",
+                "Hello",
+                1,
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow));
+        ChatWorkspaceViewModel viewModel = new(chatApiClient);
+
+        await viewModel.LoadAsync(CancellationToken.None);
+        viewModel.SelectedConversationTitle = "Renamed";
+        await viewModel.RenameConversationAsync(CancellationToken.None);
+
+        Assert.Equal(1, chatApiClient.RenameConversationCallCount);
+        Assert.Equal("Renamed", viewModel.SelectedConversation.Title);
+        Assert.Equal("Renamed", viewModel.SelectedConversationTitle);
+        Assert.Equal("Renamed", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task DeleteConversationRequiresConfirmationAndRemovesSelectedConversation()
+    {
+        Guid conversationId = Guid.NewGuid();
+        FakeChatApiClient chatApiClient = new(
+            conversations:
+            [
+                new ConversationResponse(conversationId, "Research", "Hello", 1, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+            ]);
+        ChatWorkspaceViewModel viewModel = new(chatApiClient);
+
+        await viewModel.LoadAsync(CancellationToken.None);
+        viewModel.RequestDeleteConversationCommand.Execute(null);
+        await viewModel.ConfirmDeleteConversationAsync(CancellationToken.None);
+
+        Assert.Equal(1, chatApiClient.DeleteConversationCallCount);
+        Assert.Empty(viewModel.Conversations);
+        Assert.Empty(viewModel.Messages);
+        Assert.False(viewModel.HasSelectedConversation);
+        Assert.Equal("Deleted", viewModel.StatusText);
+    }
+
+    [Fact]
     public void MessageViewModelSplitsMarkdownCodeBlocks()
     {
         ChatMessageViewModel viewModel = ChatMessageViewModel.FromResponse(
@@ -124,6 +174,7 @@ public sealed class ChatWorkspaceViewModelTests
         private readonly IReadOnlyList<ConversationResponse> conversations;
         private readonly IReadOnlyList<ChatMessageResponse> messages;
         private readonly ConversationResponse createdConversation;
+        private readonly ConversationResponse renamedConversation;
         private readonly SendMessageResponse sendMessageResponse;
         private readonly IReadOnlyList<GenerationStreamResponse> streamResponses;
         private readonly ChatApiException failure;
@@ -132,6 +183,7 @@ public sealed class ChatWorkspaceViewModelTests
             IReadOnlyList<ConversationResponse>? conversations = null,
             IReadOnlyList<ChatMessageResponse>? messages = null,
             ConversationResponse? createdConversation = null,
+            ConversationResponse? renamedConversation = null,
             SendMessageResponse? sendMessageResponse = null,
             IReadOnlyList<GenerationStreamResponse>? streamResponses = null,
             ChatApiException? failure = null)
@@ -140,6 +192,8 @@ public sealed class ChatWorkspaceViewModelTests
             this.messages = messages ?? [];
             this.createdConversation = createdConversation
                 ?? new ConversationResponse(Guid.NewGuid(), "New chat", "No messages yet.", 0, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+            this.renamedConversation = renamedConversation
+                ?? new ConversationResponse(this.createdConversation.Id, "Renamed", "No messages yet.", 0, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
             this.sendMessageResponse = sendMessageResponse
                 ?? new SendMessageResponse(Guid.NewGuid(), Guid.NewGuid());
             this.streamResponses = streamResponses ?? [GenerationStreamResponse.Completed()];
@@ -147,6 +201,10 @@ public sealed class ChatWorkspaceViewModelTests
         }
 
         public int CreateConversationCallCount { get; private set; }
+
+        public int RenameConversationCallCount { get; private set; }
+
+        public int DeleteConversationCallCount { get; private set; }
 
         public int SendMessageCallCount { get; private set; }
 
@@ -165,6 +223,27 @@ public sealed class ChatWorkspaceViewModelTests
             CreateConversationCallCount++;
 
             return Task.FromResult(createdConversation);
+        }
+
+        public Task<ConversationResponse> RenameConversationAsync(
+            Guid conversationId,
+            string title,
+            CancellationToken cancellationToken)
+        {
+            ThrowFailureIfNeeded();
+            cancellationToken.ThrowIfCancellationRequested();
+            RenameConversationCallCount++;
+
+            return Task.FromResult(renamedConversation);
+        }
+
+        public Task DeleteConversationAsync(Guid conversationId, CancellationToken cancellationToken)
+        {
+            ThrowFailureIfNeeded();
+            cancellationToken.ThrowIfCancellationRequested();
+            DeleteConversationCallCount++;
+
+            return Task.CompletedTask;
         }
 
         public Task<IReadOnlyList<ChatMessageResponse>> GetMessagesAsync(Guid conversationId, CancellationToken cancellationToken)

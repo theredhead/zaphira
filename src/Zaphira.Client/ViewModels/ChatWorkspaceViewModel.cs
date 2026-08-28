@@ -14,10 +14,12 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
     private CancellationTokenSource activeGenerationCancellation = new();
     private ConversationItemViewModel selectedConversation = ConversationItemViewModel.Empty;
     private string composerText = string.Empty;
+    private string selectedConversationTitle = string.Empty;
     private string statusText = "Ready";
     private string activeModelId = DefaultModelId;
     private bool isLoading;
     private bool isStreaming;
+    private bool isConfirmingDelete;
 
     public ChatWorkspaceViewModel(IChatApiClient chatApiClient)
     {
@@ -39,6 +41,8 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
         {
             if (SetProperty(ref selectedConversation, value))
             {
+                SelectedConversationTitle = value.HasConversation ? value.Title : string.Empty;
+                IsConfirmingDelete = false;
                 OnPropertyChanged(nameof(HasSelectedConversation));
             }
         }
@@ -53,6 +57,16 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
         {
             ArgumentNullException.ThrowIfNull(value);
             SetProperty(ref composerText, value);
+        }
+    }
+
+    public string SelectedConversationTitle
+    {
+        get => selectedConversationTitle;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            SetProperty(ref selectedConversationTitle, value);
         }
     }
 
@@ -86,6 +100,12 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
     {
         get => isStreaming;
         private set => SetProperty(ref isStreaming, value);
+    }
+
+    public bool IsConfirmingDelete
+    {
+        get => isConfirmingDelete;
+        private set => SetProperty(ref isConfirmingDelete, value);
     }
 
     [RelayCommand]
@@ -156,6 +176,87 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
         }
 
         StatusText = "Ready";
+    }
+
+    [RelayCommand]
+    public async Task RenameConversationAsync(CancellationToken cancellationToken)
+    {
+        if (!HasSelectedConversation)
+        {
+            return;
+        }
+
+        string title = SelectedConversationTitle.Trim();
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            StatusText = "Conversation title is required.";
+            return;
+        }
+
+        try
+        {
+            ConversationResponse response = await chatApiClient.RenameConversationAsync(
+                SelectedConversation.Id,
+                title,
+                cancellationToken);
+            SelectedConversation.UpdateFromResponse(response);
+            SelectedConversationTitle = response.Title;
+            StatusText = "Renamed";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            StatusText = ToStatusText(exception);
+        }
+    }
+
+    [RelayCommand]
+    public void RequestDeleteConversation()
+    {
+        if (!HasSelectedConversation)
+        {
+            return;
+        }
+
+        IsConfirmingDelete = true;
+        StatusText = "Confirm delete to remove this conversation.";
+    }
+
+    [RelayCommand]
+    public void CancelDeleteConversation()
+    {
+        IsConfirmingDelete = false;
+        StatusText = "Ready";
+    }
+
+    [RelayCommand]
+    public async Task ConfirmDeleteConversationAsync(CancellationToken cancellationToken)
+    {
+        if (!HasSelectedConversation || !IsConfirmingDelete)
+        {
+            return;
+        }
+
+        try
+        {
+            ConversationItemViewModel conversationToDelete = SelectedConversation;
+            await chatApiClient.DeleteConversationAsync(conversationToDelete.Id, cancellationToken);
+            Conversations.Remove(conversationToDelete);
+            Messages.Clear();
+            if (Conversations.Count > 0)
+            {
+                await SelectConversationAsync(Conversations[0], cancellationToken);
+            }
+            else
+            {
+                SelectedConversation = ConversationItemViewModel.Empty;
+            }
+
+            StatusText = "Deleted";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            StatusText = ToStatusText(exception);
+        }
     }
 
     [RelayCommand]

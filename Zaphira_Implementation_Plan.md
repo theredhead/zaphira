@@ -239,8 +239,8 @@
 
 - [x] Build main chat layout.
 - [x] Build conversation list.
-- [ ] Build conversation rename.
-- [ ] Build conversation delete with confirmation or undo.
+- [x] Build conversation rename.
+- [x] Build conversation delete with confirmation or undo.
 - [x] Build message composer.
 - [x] Build streaming assistant message view.
 - [x] Build stop control.

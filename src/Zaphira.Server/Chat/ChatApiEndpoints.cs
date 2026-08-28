@@ -16,6 +16,8 @@ internal static class ChatApiEndpoints
 
         group.MapPost("/conversations", CreateConversationAsync);
         group.MapGet("/conversations", GetConversationsAsync);
+        group.MapPatch("/conversations/{conversationId:guid}", RenameConversationAsync);
+        group.MapDelete("/conversations/{conversationId:guid}", DeleteConversationAsync);
         group.MapGet("/conversations/{conversationId:guid}/messages", GetMessagesAsync);
         group.MapPost("/conversations/{conversationId:guid}/messages", SendMessageAsync);
         group.MapPost("/conversations/{conversationId:guid}/messages/{assistantMessageId:guid}/stream", StreamMessageAsync);
@@ -50,6 +52,44 @@ internal static class ChatApiEndpoints
         IReadOnlyList<ConversationSummary> summaries = await conversationRepository.GetSummariesAsync(cancellationToken);
 
         return Results.Ok(new ConversationListResponse(summaries.Select(ToResponse).ToArray()));
+    }
+
+    private static async Task<IResult> RenameConversationAsync(
+        Guid conversationId,
+        UpdateConversationRequest request,
+        IConversationRepository conversationRepository,
+        CancellationToken cancellationToken)
+    {
+        ConversationId domainConversationId = new(conversationId);
+        ConversationSummaryLookup lookup = await conversationRepository.GetSummaryAsync(domainConversationId, cancellationToken);
+        if (!lookup.Exists)
+        {
+            return Results.NotFound(ErrorResponse.ConversationNotFound());
+        }
+
+        ConversationSummary updatedSummary = new(
+            lookup.Summary.Id,
+            request.Title,
+            lookup.Summary.Preview,
+            lookup.Summary.MessageCount,
+            lookup.Summary.CreatedAt,
+            DateTimeOffset.UtcNow);
+
+        await conversationRepository.SaveAsync(updatedSummary, cancellationToken);
+
+        return Results.Ok(ToResponse(updatedSummary));
+    }
+
+    private static async Task<IResult> DeleteConversationAsync(
+        Guid conversationId,
+        IConversationRepository conversationRepository,
+        CancellationToken cancellationToken)
+    {
+        bool deleted = await conversationRepository.DeleteAsync(new ConversationId(conversationId), cancellationToken);
+
+        return deleted
+            ? Results.NoContent()
+            : Results.NotFound(ErrorResponse.ConversationNotFound());
     }
 
     private static async Task<IResult> GetMessagesAsync(
@@ -277,9 +317,9 @@ internal static class ChatApiEndpoints
         ConversationId conversationId,
         CancellationToken cancellationToken)
     {
-        IReadOnlyList<ConversationSummary> summaries = await conversationRepository.GetSummariesAsync(cancellationToken);
+        ConversationSummaryLookup lookup = await conversationRepository.GetSummaryAsync(conversationId, cancellationToken);
 
-        return summaries.Any(summary => summary.Id == conversationId);
+        return lookup.Exists;
     }
 
     private static async Task<ModelAvailability> GetModelAvailabilityAsync(

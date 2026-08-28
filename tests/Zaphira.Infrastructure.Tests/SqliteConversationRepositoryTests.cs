@@ -1,4 +1,5 @@
 using Zaphira.Domain;
+using Zaphira.Application;
 using Zaphira.Infrastructure.Persistence;
 
 namespace Zaphira.Infrastructure.Tests;
@@ -38,6 +39,81 @@ public sealed class SqliteConversationRepositoryTests
         IReadOnlyList<ConversationSummary> summaries = await repository.GetSummariesAsync(CancellationToken.None);
 
         Assert.Empty(summaries);
+
+        File.Delete(databaseFile);
+    }
+
+    [Fact]
+    public async Task GetSummaryAsyncReturnsFoundSummary()
+    {
+        string databaseFile = await CreateMigratedDatabaseAsync();
+        SqliteConversationRepository repository = new(databaseFile);
+        ConversationSummary summary = new(
+            ConversationId.New(),
+            "Research",
+            new ConversationPreview("Latest answer"),
+            2,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            DateTimeOffset.UtcNow);
+
+        await repository.SaveAsync(summary, CancellationToken.None);
+
+        ConversationSummaryLookup lookup = await repository.GetSummaryAsync(summary.Id, CancellationToken.None);
+
+        Assert.True(lookup.Exists);
+        Assert.Equal(summary, lookup.Summary);
+
+        File.Delete(databaseFile);
+    }
+
+    [Fact]
+    public async Task GetSummaryAsyncReturnsNotFoundLookup()
+    {
+        string databaseFile = await CreateMigratedDatabaseAsync();
+        SqliteConversationRepository repository = new(databaseFile);
+        ConversationId conversationId = ConversationId.New();
+
+        ConversationSummaryLookup lookup = await repository.GetSummaryAsync(conversationId, CancellationToken.None);
+
+        Assert.False(lookup.Exists);
+        Assert.Equal(conversationId, lookup.Summary.Id);
+
+        File.Delete(databaseFile);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncRemovesConversation()
+    {
+        string databaseFile = await CreateMigratedDatabaseAsync();
+        SqliteConversationRepository repository = new(databaseFile);
+        ConversationSummary summary = new(
+            ConversationId.New(),
+            "Research",
+            ConversationPreview.Empty(),
+            0,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow);
+
+        await repository.SaveAsync(summary, CancellationToken.None);
+
+        bool deleted = await repository.DeleteAsync(summary.Id, CancellationToken.None);
+        IReadOnlyList<ConversationSummary> summaries = await repository.GetSummariesAsync(CancellationToken.None);
+
+        Assert.True(deleted);
+        Assert.Empty(summaries);
+
+        File.Delete(databaseFile);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncReturnsFalseWhenConversationDoesNotExist()
+    {
+        string databaseFile = await CreateMigratedDatabaseAsync();
+        SqliteConversationRepository repository = new(databaseFile);
+
+        bool deleted = await repository.DeleteAsync(ConversationId.New(), CancellationToken.None);
+
+        Assert.False(deleted);
 
         File.Delete(databaseFile);
     }

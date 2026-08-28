@@ -42,6 +42,34 @@ public sealed class HttpChatApiClient : IChatApiClient
         return await ReadRequiredJsonAsync<ConversationResponse>(response, cancellationToken);
     }
 
+    public async Task<ConversationResponse> RenameConversationAsync(
+        Guid conversationId,
+        string title,
+        CancellationToken cancellationToken)
+    {
+        ThrowIfEmpty(conversationId, nameof(conversationId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+
+        using HttpResponseMessage response = await httpClient.PatchAsJsonAsync(
+            $"/api/conversations/{conversationId}",
+            new UpdateConversationRequest(title),
+            SerializerOptions,
+            cancellationToken);
+        await ThrowIfErrorAsync(response, cancellationToken);
+
+        return await ReadRequiredJsonAsync<ConversationResponse>(response, cancellationToken);
+    }
+
+    public async Task DeleteConversationAsync(Guid conversationId, CancellationToken cancellationToken)
+    {
+        ThrowIfEmpty(conversationId, nameof(conversationId));
+
+        using HttpResponseMessage response = await httpClient.DeleteAsync(
+            $"/api/conversations/{conversationId}",
+            cancellationToken);
+        await ThrowIfErrorAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ChatMessageResponse>> GetMessagesAsync(Guid conversationId, CancellationToken cancellationToken)
     {
         ThrowIfEmpty(conversationId, nameof(conversationId));

@@ -77,7 +77,7 @@
         </Border>
 
         <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="24" RowSpacing="16">
-            <Grid ColumnDefinitions="*,220" ColumnSpacing="16">
+            <Grid ColumnDefinitions="*,220" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="8">
                 <StackPanel Spacing="2">
                     <TextBlock Text="{Binding SelectedPageTitle}"
                                FontSize="24"
@@ -88,6 +88,24 @@
                          Text="{Binding ChatWorkspace.ActiveModelId}"
                          PlaceholderText="Model"
                          VerticalAlignment="Top"/>
+                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                    <TextBox Text="{Binding ChatWorkspace.SelectedConversationTitle}"
+                             PlaceholderText="Conversation title"/>
+                    <Button Grid.Column="1"
+                            Content="Rename"
+                            Command="{Binding ChatWorkspace.RenameConversationCommand}"/>
+                    <Button Grid.Column="2"
+                            Content="Delete"
+                            Command="{Binding ChatWorkspace.RequestDeleteConversationCommand}"/>
+                    <Button Grid.Column="3"
+                            Content="Confirm Delete"
+                            Command="{Binding ChatWorkspace.ConfirmDeleteConversationCommand}"
+                            IsVisible="{Binding ChatWorkspace.IsConfirmingDelete}"/>
+                    <Button Grid.Column="4"
+                            Content="Cancel"
+                            Command="{Binding ChatWorkspace.CancelDeleteConversationCommand}"
+                            IsVisible="{Binding ChatWorkspace.IsConfirmingDelete}"/>
+                </Grid>
             </Grid>
 
             <Border Grid.Row="1" BorderThickness="1" Padding="0">
