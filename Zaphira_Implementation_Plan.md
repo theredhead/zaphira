@@ -127,21 +127,21 @@
 
 ## 6. Client Foundation
 
-- [ ] Create Avalonia application shell.
-- [ ] Add MVVM infrastructure using CommunityToolkit.
-- [ ] Create client configuration loading.
-- [ ] Create client data directory under `~/.zaphira/client/`.
-- [ ] Add client logging.
-- [ ] Add settings shell.
-- [ ] Add backend connection state.
-- [ ] Add first-run shell.
-- [ ] Add basic navigation.
+- [x] Create Avalonia application shell.
+- [x] Add MVVM infrastructure using CommunityToolkit.
+- [x] Create client configuration loading.
+- [x] Create client data directory under `~/.zaphira/client/`.
+- [x] Add client logging.
+- [x] Add settings shell.
+- [x] Add backend connection state.
+- [x] Add first-run shell.
+- [x] Add basic navigation.
 
 **Done when:**
 
-- [ ] The client starts cleanly.
-- [ ] The client can show connected, connecting, unavailable, and setup-required states.
-- [ ] UI state is separated from server-owned conversation state.
+- [x] The client starts cleanly.
+- [x] The client can show connected, connecting, unavailable, and setup-required states.
+- [x] UI state is separated from server-owned conversation state.
 
 ---
 
