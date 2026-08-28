@@ -88,18 +88,18 @@
 
 - [x] Create ASP.NET Core server host.
 - [x] Add health endpoint.
-- [ ] Add structured logging.
-- [ ] Add server configuration loading.
+- [x] Add structured logging.
+- [x] Add server configuration loading.
 - [x] Create server data directory under `~/.zaphira/server/`.
 - [x] Add graceful startup and shutdown behavior.
-- [ ] Add basic error response conventions.
-- [ ] Add server tests for health/config behavior.
+- [x] Add basic error response conventions.
+- [x] Add server tests for health/config behavior.
 
 **Done when:**
 
 - [x] The server can run headlessly.
-- [ ] The server exposes a reachable health endpoint.
-- [ ] Server logs are useful without recording conversation content.
+- [x] The server exposes a reachable health endpoint.
+- [x] Server logs are useful without recording conversation content.
 
 ---
 
