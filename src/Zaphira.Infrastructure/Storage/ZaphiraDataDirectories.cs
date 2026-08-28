@@ -15,6 +15,7 @@ public sealed record ZaphiraDataDirectories
         ServerHttpsCertificateFile = Path.Combine(ServerCertificatesRoot, "zaphira-localhost.pfx");
         ServerPairingsRoot = Path.Combine(ServerRoot, "pairings");
         ServerCacheRoot = Path.Combine(ServerRoot, "cache");
+        ServerModelCatalogCacheFile = Path.Combine(ServerCacheRoot, "model-catalog.json");
         ServerFilesRoot = Path.Combine(ServerRoot, "files");
         ServerAttachmentsRoot = Path.Combine(ServerFilesRoot, "attachments");
         ServerAudioRoot = Path.Combine(ServerFilesRoot, "audio");
@@ -38,6 +39,8 @@ public sealed record ZaphiraDataDirectories
     public string ServerPairingsRoot { get; }
 
     public string ServerCacheRoot { get; }
+
+    public string ServerModelCatalogCacheFile { get; }
 
     public string ServerFilesRoot { get; }
 

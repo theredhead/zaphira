@@ -280,8 +280,8 @@
 
 - [x] Create catalog-source abstraction.
 - [x] Implement Hugging Face catalog source.
-- [ ] Cache catalog metadata locally.
-- [ ] Add 24-hour normal cache policy.
+- [x] Cache catalog metadata locally.
+- [x] Add 24-hour normal cache policy.
 - [ ] Add Sync Now operation.
 - [x] Define purpose/capability taxonomy.
 - [ ] Implement search by name.
@@ -289,7 +289,7 @@
 - [ ] Represent compatibility confidence.
 - [ ] Distinguish directly usable, possibly usable, unsupported, and unknown models.
 - [ ] Explain why a model matched where practical.
-- [ ] Preserve cached catalog access offline.
+- [x] Preserve cached catalog access offline.
 
 **Done when:**
 
