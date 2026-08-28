@@ -7,87 +7,87 @@
 
 ## 0. Project Baseline
 
-- [ ] Confirm .NET SDK baseline.
-- [ ] Confirm Avalonia version baseline.
-- [ ] Confirm test framework and assertion library.
-- [ ] Confirm code formatting/analyzer setup.
-- [ ] Add repository README.
-- [ ] Add `.gitignore`.
-- [ ] Add basic developer setup notes.
+- [x] Confirm .NET SDK baseline.
+- [x] Confirm Avalonia version baseline.
+- [x] Confirm test framework and assertion library.
+- [x] Confirm code formatting/analyzer setup.
+- [x] Add repository README.
+- [x] Add `.gitignore`.
+- [x] Add basic developer setup notes.
 
 **Done when:**
 
-- [ ] A new developer can clone the repository, restore dependencies, build, and run tests.
+- [x] A new developer can clone the repository, restore dependencies, build, and run tests.
 
 ---
 
 ## 1. Solution Skeleton
 
-- [ ] Create `Zaphira.sln`.
-- [ ] Create `src/Zaphira.Domain`.
-- [ ] Create `src/Zaphira.Application`.
-- [ ] Create `src/Zaphira.Contracts`.
-- [ ] Create `src/Zaphira.Infrastructure`.
-- [ ] Create `src/Zaphira.Server`.
-- [ ] Create `src/Zaphira.Client`.
-- [ ] Create test projects for core layers.
-- [ ] Wire project references according to the dependency rules.
-- [ ] Enable nullable reference types.
-- [ ] Enable warnings/analyzers appropriate for strict null safety.
+- [x] Create `Zaphira.sln`.
+- [x] Create `src/Zaphira.Domain`.
+- [x] Create `src/Zaphira.Application`.
+- [x] Create `src/Zaphira.Contracts`.
+- [x] Create `src/Zaphira.Infrastructure`.
+- [x] Create `src/Zaphira.Server`.
+- [x] Create `src/Zaphira.Client`.
+- [x] Create test projects for core layers.
+- [x] Wire project references according to the dependency rules.
+- [x] Enable nullable reference types.
+- [x] Enable warnings/analyzers appropriate for strict null safety.
 
 **Done when:**
 
-- [ ] The solution builds.
-- [ ] Empty test projects run successfully.
-- [ ] Dependency direction prevents UI/backend/runtime details from leaking into domain models.
+- [x] The solution builds.
+- [x] Empty test projects run successfully.
+- [x] Dependency direction prevents UI/backend/runtime details from leaking into domain models.
 
 ---
 
 ## 2. Engineering Guardrails
 
-- [ ] Add shared build settings.
-- [ ] Add formatting rules.
-- [ ] Add analyzer rules.
-- [ ] Add test naming conventions.
-- [ ] Add visibility/null-safety guidance to code review checklist.
+- [x] Add shared build settings.
+- [x] Add formatting rules.
+- [x] Add analyzer rules.
+- [x] Add test naming conventions.
+- [x] Add visibility/null-safety guidance to code review checklist.
 - [ ] Decide how expected failures are represented at application boundaries.
 - [ ] Establish async/cancellation conventions.
 
 **Done when:**
 
-- [ ] The repository enforces or documents the main engineering rules from the architecture spec.
-- [ ] New model types cannot accidentally rely on uninitialized null properties.
+- [x] The repository enforces or documents the main engineering rules from the architecture spec.
+- [x] New model types cannot accidentally rely on uninitialized null properties.
 
 ---
 
 ## 3. Core Domain and Contracts
 
-- [ ] Define conversation identifiers.
-- [ ] Define message identifiers.
-- [ ] Define message roles.
-- [ ] Define semantic message model.
-- [ ] Define ordered message parts.
-- [ ] Define text message part.
+- [x] Define conversation identifiers.
+- [x] Define message identifiers.
+- [x] Define message roles.
+- [x] Define semantic message model.
+- [x] Define ordered message parts.
+- [x] Define text message part.
 - [ ] Define file/media reference message parts.
 - [ ] Define reasoning message part placeholder.
 - [ ] Define unknown/unsupported part handling.
-- [ ] Define message status values.
+- [x] Define message status values.
 - [ ] Define conversation summary/list model.
 - [ ] Define provider/model identifiers.
 - [ ] Define provider capability model.
-- [ ] Add domain tests for invariants.
+- [x] Add domain tests for invariants.
 
 **Done when:**
 
-- [ ] Conversations and messages can be represented without UI, HTTP, SQLite, or Ollama dependencies.
-- [ ] No domain/contract model uses null to represent missing state.
+- [x] Conversations and messages can be represented without UI, HTTP, SQLite, or Ollama dependencies.
+- [x] No domain/contract model uses null to represent missing state.
 
 ---
 
 ## 4. Server Foundation
 
-- [ ] Create ASP.NET Core server host.
-- [ ] Add health endpoint.
+- [x] Create ASP.NET Core server host.
+- [x] Add health endpoint.
 - [ ] Add structured logging.
 - [ ] Add server configuration loading.
 - [ ] Create server data directory under `~/.zaphira/server/`.
@@ -427,4 +427,3 @@
 **Done when:**
 
 - [ ] Zaphira feels like a complete local chat product rather than a technical demo.
-
