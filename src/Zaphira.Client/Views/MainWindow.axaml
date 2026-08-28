@@ -15,6 +15,19 @@
         MinHeight="620"
         WindowStartupLocation="CenterScreen">
 
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Enter"
+                    Command="{Binding ChatWorkspace.SendMessageCommand}"/>
+        <KeyBinding Gesture="Meta+Enter"
+                    Command="{Binding ChatWorkspace.SendMessageCommand}"/>
+        <KeyBinding Gesture="Ctrl+N"
+                    Command="{Binding ChatWorkspace.StartNewConversationCommand}"/>
+        <KeyBinding Gesture="Meta+N"
+                    Command="{Binding ChatWorkspace.StartNewConversationCommand}"/>
+        <KeyBinding Gesture="Escape"
+                    Command="{Binding ChatWorkspace.StopGenerationCommand}"/>
+    </Window.KeyBindings>
+
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
@@ -40,18 +53,29 @@
         <Border Grid.Row="1" Grid.Column="0" Padding="12">
             <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
                 <StackPanel Spacing="8">
-                    <Button Content="Setup" Command="{Binding ShowFirstRunCommand}" HorizontalAlignment="Stretch"/>
-                    <Button Content="Chat" Command="{Binding ShowChatCommand}" HorizontalAlignment="Stretch"/>
-                    <Button Content="Settings" Command="{Binding ShowSettingsCommand}" HorizontalAlignment="Stretch"/>
+                    <Button Content="Setup"
+                            Command="{Binding ShowFirstRunCommand}"
+                            HorizontalAlignment="Stretch"
+                            TabIndex="0"/>
+                    <Button Content="Chat"
+                            Command="{Binding ShowChatCommand}"
+                            HorizontalAlignment="Stretch"
+                            TabIndex="1"/>
+                    <Button Content="Settings"
+                            Command="{Binding ShowSettingsCommand}"
+                            HorizontalAlignment="Stretch"
+                            TabIndex="2"/>
                 </StackPanel>
 
                 <Button Grid.Row="1"
                         Content="New Chat"
                         Command="{Binding ChatWorkspace.StartNewConversationCommand}"
-                        HorizontalAlignment="Stretch"/>
+                        HorizontalAlignment="Stretch"
+                        TabIndex="3"/>
 
                 <ScrollViewer Grid.Row="2">
-                    <ItemsControl ItemsSource="{Binding ChatWorkspace.Conversations}">
+                    <ItemsControl ItemsSource="{Binding ChatWorkspace.Conversations}"
+                                  AutomationProperties.Name="Conversations">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="vm:ConversationItemViewModel">
                                 <Button Command="{Binding DataContext.ChatWorkspace.SelectConversationCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -59,7 +83,8 @@
                                         x:CompileBindings="False"
                                         HorizontalAlignment="Stretch"
                                         Padding="10"
-                                        Margin="0,0,0,8">
+                                        Margin="0,0,0,8"
+                                        AutomationProperties.Name="{Binding Title}">
                                     <StackPanel Spacing="2">
                                         <TextBlock Text="{Binding Title}"
                                                    FontWeight="SemiBold"
@@ -87,24 +112,32 @@
                 <TextBox Grid.Column="1"
                          Text="{Binding ChatWorkspace.ActiveModelId}"
                          PlaceholderText="Model"
-                         VerticalAlignment="Top"/>
+                         VerticalAlignment="Top"
+                         TabIndex="10"
+                         AutomationProperties.Name="Model"/>
                 <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                     <TextBox Text="{Binding ChatWorkspace.SelectedConversationTitle}"
-                             PlaceholderText="Conversation title"/>
+                             PlaceholderText="Conversation title"
+                             TabIndex="11"
+                             AutomationProperties.Name="Conversation title"/>
                     <Button Grid.Column="1"
                             Content="Rename"
-                            Command="{Binding ChatWorkspace.RenameConversationCommand}"/>
+                            Command="{Binding ChatWorkspace.RenameConversationCommand}"
+                            TabIndex="12"/>
                     <Button Grid.Column="2"
                             Content="Delete"
-                            Command="{Binding ChatWorkspace.RequestDeleteConversationCommand}"/>
+                            Command="{Binding ChatWorkspace.RequestDeleteConversationCommand}"
+                            TabIndex="13"/>
                     <Button Grid.Column="3"
                             Content="Confirm Delete"
                             Command="{Binding ChatWorkspace.ConfirmDeleteConversationCommand}"
-                            IsVisible="{Binding ChatWorkspace.IsConfirmingDelete}"/>
+                            IsVisible="{Binding ChatWorkspace.IsConfirmingDelete}"
+                            TabIndex="14"/>
                     <Button Grid.Column="4"
                             Content="Cancel"
                             Command="{Binding ChatWorkspace.CancelDeleteConversationCommand}"
-                            IsVisible="{Binding ChatWorkspace.IsConfirmingDelete}"/>
+                            IsVisible="{Binding ChatWorkspace.IsConfirmingDelete}"
+                            TabIndex="15"/>
                 </Grid>
             </Grid>
 
@@ -220,15 +253,19 @@
                          PlaceholderText="Message"
                          AcceptsReturn="True"
                          MinHeight="76"
-                         TextWrapping="Wrap"/>
+                         TextWrapping="Wrap"
+                         TabIndex="20"
+                         AutomationProperties.Name="Message"/>
                 <Button Grid.Column="1"
                         Content="Stop"
                         Command="{Binding ChatWorkspace.StopGenerationCommand}"
-                        VerticalAlignment="Stretch"/>
+                        VerticalAlignment="Stretch"
+                        TabIndex="21"/>
                 <Button Grid.Column="2"
                         Content="Send"
                         Command="{Binding ChatWorkspace.SendMessageCommand}"
-                        VerticalAlignment="Stretch"/>
+                        VerticalAlignment="Stretch"
+                        TabIndex="22"/>
             </Grid>
         </Grid>
     </Grid>

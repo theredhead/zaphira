@@ -248,7 +248,7 @@
 - [x] Build Markdown rendering.
 - [x] Build syntax-highlighted code rendering.
 - [x] Build fallback rendering for unknown message parts.
-- [ ] Add keyboard and accessibility basics.
+- [x] Add keyboard and accessibility basics.
 
 **Done when:**
 
