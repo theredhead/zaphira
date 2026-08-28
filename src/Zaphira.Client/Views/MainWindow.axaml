@@ -167,9 +167,40 @@
                                                             <StackPanel Spacing="8">
                                                                 <TextBlock Text="{Binding CodeHeader}"
                                                                            FontSize="12"/>
-                                                                <TextBlock Text="{Binding Text}"
-                                                                           FontFamily="Consolas, Menlo, Monaco, monospace"
-                                                                           TextWrapping="Wrap"/>
+                                                                <ItemsControl ItemsSource="{Binding CodeLines}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="vm:RenderedCodeLineViewModel">
+                                                                            <ItemsControl ItemsSource="{Binding Tokens}">
+                                                                                <ItemsControl.ItemsPanel>
+                                                                                    <ItemsPanelTemplate>
+                                                                                        <WrapPanel/>
+                                                                                    </ItemsPanelTemplate>
+                                                                                </ItemsControl.ItemsPanel>
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate DataType="vm:RenderedCodeTokenViewModel">
+                                                                                        <StackPanel>
+                                                                                            <TextBlock Text="{Binding Text}"
+                                                                                                       IsVisible="{Binding IsPlain}"
+                                                                                                       FontFamily="Consolas, Menlo, Monaco, monospace"/>
+                                                                                            <TextBlock Text="{Binding Text}"
+                                                                                                       IsVisible="{Binding IsKeyword}"
+                                                                                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                                                                       FontWeight="SemiBold"/>
+                                                                                            <TextBlock Text="{Binding Text}"
+                                                                                                       IsVisible="{Binding IsStringLiteral}"
+                                                                                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                                                                       FontStyle="Italic"/>
+                                                                                            <TextBlock Text="{Binding Text}"
+                                                                                                       IsVisible="{Binding IsComment}"
+                                                                                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                                                                       FontStyle="Italic"/>
+                                                                                        </StackPanel>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
                                                             </StackPanel>
                                                         </Border>
                                                     </StackPanel>

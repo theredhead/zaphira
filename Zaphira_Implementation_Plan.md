@@ -246,7 +246,7 @@
 - [x] Build stop control.
 - [x] Build message status/error presentation.
 - [x] Build Markdown rendering.
-- [ ] Build syntax-highlighted code rendering.
+- [x] Build syntax-highlighted code rendering.
 - [x] Build fallback rendering for unknown message parts.
 - [ ] Add keyboard and accessibility basics.
 

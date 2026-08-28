@@ -6,15 +6,18 @@ public sealed class RenderedMessagePartViewModel : ViewModelBase
         string text,
         RenderedMessagePartKind kind,
         int headingLevel,
-        string language)
+        string language,
+        IReadOnlyList<RenderedCodeLineViewModel> codeLines)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(language);
+        ArgumentNullException.ThrowIfNull(codeLines);
 
         Text = text;
         Kind = kind;
         HeadingLevel = headingLevel;
         Language = language;
+        CodeLines = codeLines;
     }
 
     public string Text { get; }
@@ -45,8 +48,10 @@ public sealed class RenderedMessagePartViewModel : ViewModelBase
 
     public string CodeHeader => string.IsNullOrWhiteSpace(Language) ? "code" : Language;
 
+    public IReadOnlyList<RenderedCodeLineViewModel> CodeLines { get; }
+
     public static RenderedMessagePartViewModel Paragraph(string text) =>
-        new(text, RenderedMessagePartKind.Paragraph, headingLevel: 0, string.Empty);
+        new(text, RenderedMessagePartKind.Paragraph, headingLevel: 0, string.Empty, []);
 
     public static RenderedMessagePartViewModel Heading(string text, int headingLevel)
     {
@@ -55,15 +60,20 @@ public sealed class RenderedMessagePartViewModel : ViewModelBase
             throw new ArgumentOutOfRangeException(nameof(headingLevel), "Heading level must be positive.");
         }
 
-        return new(text, RenderedMessagePartKind.Heading, headingLevel, string.Empty);
+        return new(text, RenderedMessagePartKind.Heading, headingLevel, string.Empty, []);
     }
 
     public static RenderedMessagePartViewModel ListItem(string text) =>
-        new(text, RenderedMessagePartKind.ListItem, headingLevel: 0, string.Empty);
+        new(text, RenderedMessagePartKind.ListItem, headingLevel: 0, string.Empty, []);
 
     public static RenderedMessagePartViewModel Quote(string text) =>
-        new(text, RenderedMessagePartKind.Quote, headingLevel: 0, string.Empty);
+        new(text, RenderedMessagePartKind.Quote, headingLevel: 0, string.Empty, []);
 
     public static RenderedMessagePartViewModel CodeBlock(string text, string language) =>
-        new(text, RenderedMessagePartKind.CodeBlock, headingLevel: 0, language);
+        new(
+            text,
+            RenderedMessagePartKind.CodeBlock,
+            headingLevel: 0,
+            language,
+            SyntaxHighlightedCodeParser.Highlight(text, language));
 }

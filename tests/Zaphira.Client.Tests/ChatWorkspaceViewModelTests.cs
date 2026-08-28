@@ -209,6 +209,49 @@ public sealed class ChatWorkspaceViewModelTests
         Assert.Equal(string.Empty, viewModel.RenderedParts[0].Language);
     }
 
+    [Fact]
+    public void MessageViewModelHighlightsCSharpCodeBlocks()
+    {
+        ChatMessageViewModel viewModel = ChatMessageViewModel.FromResponse(
+            new ChatMessageResponse(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                "Assistant",
+                "Completed",
+                [new MessagePartResponse("text", "```csharp\npublic string Name => \"Zaphira\"; // app name\n```")],
+                DateTimeOffset.UtcNow));
+
+        RenderedMessagePartViewModel codeBlock = viewModel.RenderedParts[0];
+
+        Assert.True(codeBlock.IsCodeBlock);
+        Assert.Single(codeBlock.CodeLines);
+        Assert.Contains(codeBlock.CodeLines[0].Tokens, token => token.Text == "public" && token.IsKeyword);
+        Assert.Contains(codeBlock.CodeLines[0].Tokens, token => token.Text == "string" && token.IsKeyword);
+        Assert.Contains(codeBlock.CodeLines[0].Tokens, token => token.Text == "\"Zaphira\"" && token.IsStringLiteral);
+        Assert.Contains(codeBlock.CodeLines[0].Tokens, token => token.Text == "// app name" && token.IsComment);
+    }
+
+    [Fact]
+    public void MessageViewModelKeepsUnknownLanguageCodePlain()
+    {
+        ChatMessageViewModel viewModel = ChatMessageViewModel.FromResponse(
+            new ChatMessageResponse(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                "Assistant",
+                "Completed",
+                [new MessagePartResponse("text", "```text\nplain text\n```")],
+                DateTimeOffset.UtcNow));
+
+        RenderedMessagePartViewModel codeBlock = viewModel.RenderedParts[0];
+
+        Assert.True(codeBlock.IsCodeBlock);
+        Assert.Single(codeBlock.CodeLines);
+        Assert.Single(codeBlock.CodeLines[0].Tokens);
+        Assert.Equal("plain text", codeBlock.CodeLines[0].Tokens[0].Text);
+        Assert.True(codeBlock.CodeLines[0].Tokens[0].IsPlain);
+    }
+
     private sealed class FakeChatApiClient : IChatApiClient
     {
         private readonly IReadOnlyList<ConversationResponse> conversations;
