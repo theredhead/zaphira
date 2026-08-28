@@ -105,23 +105,23 @@
 
 ## 5. Persistence
 
-- [ ] Add SQLite database.
-- [ ] Add migration mechanism.
-- [ ] Create conversation schema.
-- [ ] Create message schema.
-- [ ] Create message-part persistence.
-- [ ] Create generated/received file metadata schema.
-- [ ] Store large binary content outside SQLite.
+- [x] Add SQLite database.
+- [x] Add migration mechanism.
+- [x] Create conversation schema.
+- [x] Create message schema.
+- [x] Create message-part persistence.
+- [x] Create generated/received file metadata schema.
+- [x] Store large binary content outside SQLite.
 - [ ] Implement conversation repository.
 - [ ] Implement message repository.
-- [ ] Add tests for persistence and migrations.
+- [x] Add tests for persistence and migrations.
 - [ ] Add partial-message persistence behavior.
 
 **Done when:**
 
 - [ ] Conversations survive server restarts.
 - [ ] Partial, cancelled, failed, and completed assistant messages are represented consistently.
-- [ ] Database migrations are versioned and tested.
+- [x] Database migrations are versioned and tested.
 
 ---
 

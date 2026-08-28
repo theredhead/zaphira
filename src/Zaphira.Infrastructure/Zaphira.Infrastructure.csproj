@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Zaphira.Application\Zaphira.Application.csproj" />
     <ProjectReference Include="..\Zaphira.Domain\Zaphira.Domain.csproj" />
   </ItemGroup>
