@@ -112,15 +112,15 @@
 - [x] Create message-part persistence.
 - [x] Create generated/received file metadata schema.
 - [x] Store large binary content outside SQLite.
-- [ ] Implement conversation repository.
-- [ ] Implement message repository.
+- [x] Implement conversation repository.
+- [x] Implement message repository.
 - [x] Add tests for persistence and migrations.
-- [ ] Add partial-message persistence behavior.
+- [x] Add partial-message persistence behavior.
 
 **Done when:**
 
-- [ ] Conversations survive server restarts.
-- [ ] Partial, cancelled, failed, and completed assistant messages are represented consistently.
+- [x] Conversations survive server restarts.
+- [x] Partial, cancelled, failed, and completed assistant messages are represented consistently.
 - [x] Database migrations are versioned and tested.
 
 ---
