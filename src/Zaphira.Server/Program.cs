@@ -1,7 +1,12 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Zaphira.Application;
+using Zaphira.Application.Providers;
 using Zaphira.Infrastructure.Security;
 using Zaphira.Contracts;
+using Zaphira.Infrastructure.Persistence;
+using Zaphira.Infrastructure.Providers.Ollama;
 using Zaphira.Infrastructure.Storage;
+using Zaphira.Server.Chat;
 using Zaphira.Server.Configuration;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -18,6 +23,17 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<ZaphiraDataDirectories>(serviceProvider =>
     ZaphiraServerConfiguration.LoadDataDirectories(serviceProvider.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<ServerHttpsCertificateManager>();
+builder.Services.AddSingleton<SqliteDatabaseMigrator>();
+builder.Services.AddSingleton<IConversationRepository>(serviceProvider =>
+    new SqliteConversationRepository(serviceProvider.GetRequiredService<ZaphiraDataDirectories>().ServerDatabaseFile));
+builder.Services.AddSingleton<IMessageRepository>(serviceProvider =>
+    new SqliteMessageRepository(serviceProvider.GetRequiredService<ZaphiraDataDirectories>().ServerDatabaseFile));
+builder.Services.AddSingleton<IChatModelProvider>(_ =>
+    new OllamaChatModelProvider(new HttpClient
+    {
+        BaseAddress = new Uri("http://localhost:11434")
+    }));
+builder.Services.AddSingleton<GenerationCancellationRegistry>();
 
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
@@ -39,6 +55,9 @@ WebApplication app = builder.Build();
 
 ZaphiraDataDirectories dataDirectories = app.Services.GetRequiredService<ZaphiraDataDirectories>();
 await dataDirectories.EnsureServerDirectoriesExistAsync(CancellationToken.None);
+await app.Services
+    .GetRequiredService<SqliteDatabaseMigrator>()
+    .MigrateAsync(dataDirectories.ServerDatabaseFile, CancellationToken.None);
 ServerHttpsCertificateMaterial httpsCertificateMaterial = await app.Services
     .GetRequiredService<ServerHttpsCertificateManager>()
     .LoadOrCreateAsync(dataDirectories, CancellationToken.None);
@@ -80,6 +99,8 @@ app.UseHttpsRedirection();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("Zaphira.Server", "Healthy")))
     .WithName("GetHealth");
+
+app.MapChatApi();
 
 app.MapFallback(() => Results.NotFound(ErrorResponse.RouteNotFound()));
 

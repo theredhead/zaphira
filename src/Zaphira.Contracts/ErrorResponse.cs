@@ -22,6 +22,18 @@ public sealed record ErrorResponse
     public static ErrorResponse RouteNotFound() =>
         new("route_not_found", "No endpoint matches the request.", "Check the endpoint path and HTTP method.");
 
+    public static ErrorResponse ConversationNotFound() =>
+        new("conversation_not_found", "The conversation was not found.", "Select an existing conversation and try again.");
+
+    public static ErrorResponse MessageNotFound() =>
+        new("message_not_found", "The message was not found.", "Reload the conversation and try again.");
+
+    public static ErrorResponse ModelNotFound() =>
+        new("model_not_found", "The selected model is not available.", "Choose an installed model and try again.");
+
+    public static ErrorResponse ProviderUnavailable() =>
+        new("provider_unavailable", "The model provider is unavailable.", "Start the provider, go online if needed, then try again.");
+
     public static ErrorResponse UnexpectedServerError() =>
         new("unexpected_server_error", "The server hit an unexpected error.", "Try again.");
 }

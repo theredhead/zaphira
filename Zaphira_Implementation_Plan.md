@@ -219,19 +219,19 @@
 
 ## 11. Chat API
 
-- [ ] Create conversation endpoints.
-- [ ] Create message retrieval endpoints.
-- [ ] Create send-message endpoint.
-- [ ] Create streaming generation endpoint.
-- [ ] Create cancellation endpoint or cancellation mechanism.
-- [ ] Persist user messages.
-- [ ] Persist assistant message state during generation.
-- [ ] Return clear errors for missing provider/model/backend state.
-- [ ] Add server/API tests.
+- [x] Create conversation endpoints.
+- [x] Create message retrieval endpoints.
+- [x] Create send-message endpoint.
+- [x] Create streaming generation endpoint.
+- [x] Create cancellation endpoint or cancellation mechanism.
+- [x] Persist user messages.
+- [x] Persist assistant message state during generation.
+- [x] Return clear errors for missing provider/model/backend state.
+- [x] Add server/API tests.
 
 **Done when:**
 
-- [ ] A client can create/select a conversation, send text, stream an answer, cancel generation, and reload persisted history.
+- [x] A client can create/select a conversation, send text, stream an answer, cancel generation, and reload persisted history.
 
 ---
 
