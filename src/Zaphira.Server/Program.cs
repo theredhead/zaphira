@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Zaphira.Application.Hardware;
 using Zaphira.Application;
 using Zaphira.Application.ModelCatalog;
 using Zaphira.Application.Providers;
+using Zaphira.Infrastructure.Hardware;
 using Zaphira.Infrastructure.Security;
 using Zaphira.Contracts;
 using Zaphira.Infrastructure.ModelCatalog;
@@ -50,6 +52,9 @@ builder.Services.AddSingleton(serviceProvider =>
         serviceProvider.GetRequiredService<IModelCatalogCache>(),
         TimeProvider.System));
 builder.Services.AddSingleton<CatalogSearchService>();
+builder.Services.AddSingleton<CatalogCompatibilityEstimator>();
+builder.Services.AddSingleton<IHardwareProfileDetector>(
+    new RuntimeHardwareProfileDetector(memoryHeadroomBytes: 2L * 1024L * 1024L * 1024L));
 
 builder.WebHost.ConfigureKestrel((context, options) =>
 {

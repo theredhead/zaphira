@@ -9,6 +9,7 @@ public sealed record CatalogModelResponse
         IReadOnlyList<string> purposes,
         string compatibilityStatus,
         string compatibilityConfidence,
+        string compatibilityExplanation,
         string matchExplanation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
@@ -17,6 +18,7 @@ public sealed record CatalogModelResponse
         ArgumentNullException.ThrowIfNull(purposes);
         ArgumentException.ThrowIfNullOrWhiteSpace(compatibilityStatus);
         ArgumentException.ThrowIfNullOrWhiteSpace(compatibilityConfidence);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compatibilityExplanation);
         ArgumentException.ThrowIfNullOrWhiteSpace(matchExplanation);
 
         string[] materializedTags = tags.ToArray();
@@ -37,6 +39,7 @@ public sealed record CatalogModelResponse
         Purposes = materializedPurposes;
         CompatibilityStatus = compatibilityStatus;
         CompatibilityConfidence = compatibilityConfidence;
+        CompatibilityExplanation = compatibilityExplanation;
         MatchExplanation = matchExplanation;
     }
 
@@ -51,6 +54,8 @@ public sealed record CatalogModelResponse
     public string CompatibilityStatus { get; }
 
     public string CompatibilityConfidence { get; }
+
+    public string CompatibilityExplanation { get; }
 
     public string MatchExplanation { get; }
 }

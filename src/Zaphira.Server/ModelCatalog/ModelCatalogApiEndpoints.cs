@@ -1,3 +1,4 @@
+using Zaphira.Application.Hardware;
 using Zaphira.Application.ModelCatalog;
 using Zaphira.Contracts;
 
@@ -18,11 +19,15 @@ internal static class ModelCatalogApiEndpoints
     private static Task<IResult> LoadCatalogAsync(
         ModelCatalogService modelCatalogService,
         CatalogSearchService catalogSearchService,
+        CatalogCompatibilityEstimator compatibilityEstimator,
+        IHardwareProfileDetector hardwareProfileDetector,
         HttpContext context,
         CancellationToken cancellationToken) =>
         LoadCatalogResultAsync(
             modelCatalogService,
             catalogSearchService,
+            compatibilityEstimator,
+            hardwareProfileDetector,
             CreateSearchRequest(context),
             forceSync: false,
             cancellationToken);
@@ -30,10 +35,14 @@ internal static class ModelCatalogApiEndpoints
     private static Task<IResult> SyncCatalogAsync(
         ModelCatalogService modelCatalogService,
         CatalogSearchService catalogSearchService,
+        CatalogCompatibilityEstimator compatibilityEstimator,
+        IHardwareProfileDetector hardwareProfileDetector,
         CancellationToken cancellationToken) =>
         LoadCatalogResultAsync(
             modelCatalogService,
             catalogSearchService,
+            compatibilityEstimator,
+            hardwareProfileDetector,
             CatalogSearchRequest.All(),
             forceSync: true,
             cancellationToken);
@@ -41,6 +50,8 @@ internal static class ModelCatalogApiEndpoints
     private static async Task<IResult> LoadCatalogResultAsync(
         ModelCatalogService modelCatalogService,
         CatalogSearchService catalogSearchService,
+        CatalogCompatibilityEstimator compatibilityEstimator,
+        IHardwareProfileDetector hardwareProfileDetector,
         CatalogSearchRequest searchRequest,
         bool forceSync,
         CancellationToken cancellationToken)
@@ -52,12 +63,17 @@ internal static class ModelCatalogApiEndpoints
         }
 
         IReadOnlyList<CatalogModelSearchResult> searchResults = catalogSearchService.Search(result.Models, searchRequest);
+        HardwareProfile hardwareProfile = await hardwareProfileDetector.DetectAsync(cancellationToken);
 
         return Results.Ok(new ModelCatalogResponse(
             result.IsFromCache,
             result.Message,
             result.Suggestion,
-            searchResults.Select(ToResponse).ToArray()));
+            searchResults
+                .Select(searchResult => ToResponse(
+                    searchResult,
+                    compatibilityEstimator.Estimate(searchResult.Model, hardwareProfile)))
+                .ToArray()));
     }
 
     private static CatalogSearchRequest CreateSearchRequest(HttpContext context)
@@ -76,13 +92,16 @@ internal static class ModelCatalogApiEndpoints
         return new CatalogSearchRequest(query, purposes);
     }
 
-    private static CatalogModelResponse ToResponse(CatalogModelSearchResult result) =>
+    private static CatalogModelResponse ToResponse(
+        CatalogModelSearchResult searchResult,
+        CatalogModelSearchResult compatibilityEstimate) =>
         new(
-            result.Model.Id,
-            result.Model.DisplayName,
-            result.Model.Tags,
-            result.Model.Purposes.Select(purpose => purpose.ToString()).ToArray(),
-            result.CompatibilityStatus.ToString(),
-            result.CompatibilityConfidence.ToString(),
-            result.MatchExplanation);
+            searchResult.Model.Id,
+            searchResult.Model.DisplayName,
+            searchResult.Model.Tags,
+            searchResult.Model.Purposes.Select(purpose => purpose.ToString()).ToArray(),
+            compatibilityEstimate.CompatibilityStatus.ToString(),
+            compatibilityEstimate.CompatibilityConfidence.ToString(),
+            compatibilityEstimate.MatchExplanation,
+            searchResult.MatchExplanation);
 }

@@ -300,20 +300,20 @@
 
 ## 15. Hardware-Aware Compatibility
 
-- [ ] Detect operating system.
-- [ ] Detect CPU.
-- [ ] Detect physical/system memory.
+- [x] Detect operating system.
+- [x] Detect CPU.
+- [x] Detect physical/system memory.
 - [ ] Detect GPU information where practical.
-- [ ] Detect unified memory where practical.
-- [ ] Add configurable memory headroom.
-- [ ] Estimate compatibility conservatively.
-- [ ] Explain uncertainty in compatibility results.
-- [ ] Add tests for compatibility calculations.
+- [x] Detect unified memory where practical.
+- [x] Add configurable memory headroom.
+- [x] Estimate compatibility conservatively.
+- [x] Explain uncertainty in compatibility results.
+- [x] Add tests for compatibility calculations.
 
 **Done when:**
 
-- [ ] Zaphira avoids presenting obviously unsuitable models as compatible.
-- [ ] Compatibility results expose uncertainty instead of pretending to be perfect.
+- [x] Zaphira avoids presenting obviously unsuitable models as compatible.
+- [x] Compatibility results expose uncertainty instead of pretending to be perfect.
 
 ---
 

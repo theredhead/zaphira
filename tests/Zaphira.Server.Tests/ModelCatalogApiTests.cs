@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Zaphira.Application.Hardware;
 using Zaphira.Application.ModelCatalog;
 using Zaphira.Contracts;
 
@@ -14,7 +15,7 @@ namespace Zaphira.Server.Tests;
 public sealed class ModelCatalogApiTests
 {
     private static readonly CatalogModelSummary CatalogModel =
-        new("microsoft/phi-4", "phi-4", ["text-generation"], [CatalogModelPurpose.GeneralChat]);
+        new("microsoft/phi-4-7b", "phi-4-7b", ["text-generation"], [CatalogModelPurpose.GeneralChat]);
 
     [Fact]
     public async Task GetCatalogReturnsCatalogModels()
@@ -32,10 +33,11 @@ public sealed class ModelCatalogApiTests
         Assert.NotNull(response);
         Assert.False(response.IsFromCache);
         CatalogModelResponse model = Assert.Single(response.Models);
-        Assert.Equal("microsoft/phi-4", model.Id);
+        Assert.Equal("microsoft/phi-4-7b", model.Id);
         Assert.Contains("GeneralChat", model.Purposes);
         Assert.Equal("DirectlyUsable", model.CompatibilityStatus);
         Assert.Equal("Medium", model.CompatibilityConfidence);
+        Assert.Contains("fits", model.CompatibilityExplanation, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Matched catalog filters.", model.MatchExplanation);
 
         DeleteDirectoryIfItExists(homeDirectory);
@@ -208,9 +210,18 @@ public sealed class ModelCatalogApiTests
             {
                 services.RemoveAll<ICatalogSource>();
                 services.RemoveAll<IModelCatalogCache>();
+                services.RemoveAll<IHardwareProfileDetector>();
                 services.RemoveAll<ModelCatalogService>();
                 services.AddSingleton(catalogSource);
                 services.AddSingleton(modelCatalogCache);
+                services.AddSingleton<IHardwareProfileDetector>(
+                    new FakeHardwareProfileDetector(new HardwareProfile(
+                        "Test OS",
+                        "Test CPU",
+                        16L * 1024L * 1024L * 1024L,
+                        "Test GPU",
+                        hasUnifiedMemory: true,
+                        2L * 1024L * 1024L * 1024L)));
                 services.AddSingleton(serviceProvider =>
                     new ModelCatalogService(
                         serviceProvider.GetRequiredService<ICatalogSource>(),
@@ -272,6 +283,25 @@ public sealed class ModelCatalogApiTests
             lookup = CatalogCacheLookup.Found(snapshot);
 
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeHardwareProfileDetector : IHardwareProfileDetector
+    {
+        private readonly HardwareProfile hardwareProfile;
+
+        public FakeHardwareProfileDetector(HardwareProfile hardwareProfile)
+        {
+            ArgumentNullException.ThrowIfNull(hardwareProfile);
+
+            this.hardwareProfile = hardwareProfile;
+        }
+
+        public Task<HardwareProfile> DetectAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(hardwareProfile);
         }
     }
 }

@@ -12,6 +12,7 @@ public sealed class CatalogModelItemViewModel
         DisplayName = response.DisplayName;
         PurposesText = string.Join(", ", response.Purposes);
         CompatibilityText = $"{response.CompatibilityStatus} ({response.CompatibilityConfidence})";
+        CompatibilityExplanation = response.CompatibilityExplanation;
         MatchExplanation = response.MatchExplanation;
     }
 
@@ -22,6 +23,8 @@ public sealed class CatalogModelItemViewModel
     public string PurposesText { get; }
 
     public string CompatibilityText { get; }
+
+    public string CompatibilityExplanation { get; }
 
     public string MatchExplanation { get; }
 }

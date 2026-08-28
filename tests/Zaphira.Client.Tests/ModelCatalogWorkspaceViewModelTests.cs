@@ -69,6 +69,7 @@ public sealed class ModelCatalogWorkspaceViewModelTests
                     ["Coding"],
                     "DirectlyUsable",
                     "Medium",
+                    "Estimated model memory fits within available unified memory.",
                     "Matched name or id: coder.")
             ]);
 

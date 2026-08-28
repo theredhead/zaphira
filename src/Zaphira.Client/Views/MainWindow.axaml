@@ -214,6 +214,8 @@
                                                    TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding CompatibilityText}"
                                                    TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding CompatibilityExplanation}"
+                                                   TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding MatchExplanation}"
                                                    TextWrapping="Wrap"/>
                                     </StackPanel>
