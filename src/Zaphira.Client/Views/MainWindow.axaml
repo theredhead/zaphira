@@ -8,7 +8,11 @@
         x:Name="Root"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Zaphira">
+        Title="Zaphira"
+        Width="1120"
+        Height="760"
+        MinWidth="900"
+        MinHeight="620">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
