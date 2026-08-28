@@ -182,19 +182,19 @@
 
 ## 9. Provider Foundation
 
-- [ ] Define LLM provider interface around semantic capabilities.
-- [ ] Define model listing contract.
-- [ ] Define generation request contract.
-- [ ] Define generation event contract.
-- [ ] Define cancellation behavior.
-- [ ] Define provider error model.
-- [ ] Add fake/test provider.
-- [ ] Add provider contract tests.
+- [x] Define LLM provider interface around semantic capabilities.
+- [x] Define model listing contract.
+- [x] Define generation request contract.
+- [x] Define generation event contract.
+- [x] Define cancellation behavior.
+- [x] Define provider error model.
+- [x] Add fake/test provider.
+- [x] Add provider contract tests.
 
 **Done when:**
 
-- [ ] Chat can be exercised through a fake provider without Ollama.
-- [ ] The application layer does not depend on Ollama-specific behavior.
+- [x] Chat can be exercised through a fake provider without Ollama.
+- [x] The application layer does not depend on Ollama-specific behavior.
 
 ---
 
