@@ -1,0 +1,430 @@
+# Zaphira — Broad Implementation Plan
+
+> **Source spec:** `Zaphira_Architecture_MVP.md`  
+> **Purpose:** Track the broad implementation path from MVP architecture to a usable local-first desktop chat product.
+
+---
+
+## 0. Project Baseline
+
+- [ ] Confirm .NET SDK baseline.
+- [ ] Confirm Avalonia version baseline.
+- [ ] Confirm test framework and assertion library.
+- [ ] Confirm code formatting/analyzer setup.
+- [ ] Add repository README.
+- [ ] Add `.gitignore`.
+- [ ] Add basic developer setup notes.
+
+**Done when:**
+
+- [ ] A new developer can clone the repository, restore dependencies, build, and run tests.
+
+---
+
+## 1. Solution Skeleton
+
+- [ ] Create `Zaphira.sln`.
+- [ ] Create `src/Zaphira.Domain`.
+- [ ] Create `src/Zaphira.Application`.
+- [ ] Create `src/Zaphira.Contracts`.
+- [ ] Create `src/Zaphira.Infrastructure`.
+- [ ] Create `src/Zaphira.Server`.
+- [ ] Create `src/Zaphira.Client`.
+- [ ] Create test projects for core layers.
+- [ ] Wire project references according to the dependency rules.
+- [ ] Enable nullable reference types.
+- [ ] Enable warnings/analyzers appropriate for strict null safety.
+
+**Done when:**
+
+- [ ] The solution builds.
+- [ ] Empty test projects run successfully.
+- [ ] Dependency direction prevents UI/backend/runtime details from leaking into domain models.
+
+---
+
+## 2. Engineering Guardrails
+
+- [ ] Add shared build settings.
+- [ ] Add formatting rules.
+- [ ] Add analyzer rules.
+- [ ] Add test naming conventions.
+- [ ] Add visibility/null-safety guidance to code review checklist.
+- [ ] Decide how expected failures are represented at application boundaries.
+- [ ] Establish async/cancellation conventions.
+
+**Done when:**
+
+- [ ] The repository enforces or documents the main engineering rules from the architecture spec.
+- [ ] New model types cannot accidentally rely on uninitialized null properties.
+
+---
+
+## 3. Core Domain and Contracts
+
+- [ ] Define conversation identifiers.
+- [ ] Define message identifiers.
+- [ ] Define message roles.
+- [ ] Define semantic message model.
+- [ ] Define ordered message parts.
+- [ ] Define text message part.
+- [ ] Define file/media reference message parts.
+- [ ] Define reasoning message part placeholder.
+- [ ] Define unknown/unsupported part handling.
+- [ ] Define message status values.
+- [ ] Define conversation summary/list model.
+- [ ] Define provider/model identifiers.
+- [ ] Define provider capability model.
+- [ ] Add domain tests for invariants.
+
+**Done when:**
+
+- [ ] Conversations and messages can be represented without UI, HTTP, SQLite, or Ollama dependencies.
+- [ ] No domain/contract model uses null to represent missing state.
+
+---
+
+## 4. Server Foundation
+
+- [ ] Create ASP.NET Core server host.
+- [ ] Add health endpoint.
+- [ ] Add structured logging.
+- [ ] Add server configuration loading.
+- [ ] Create server data directory under `~/.zaphira/server/`.
+- [ ] Add graceful startup and shutdown behavior.
+- [ ] Add basic error response conventions.
+- [ ] Add server tests for health/config behavior.
+
+**Done when:**
+
+- [ ] The server can run headlessly.
+- [ ] The server exposes a reachable health endpoint.
+- [ ] Server logs are useful without recording conversation content.
+
+---
+
+## 5. Persistence
+
+- [ ] Add SQLite database.
+- [ ] Add migration mechanism.
+- [ ] Create conversation schema.
+- [ ] Create message schema.
+- [ ] Create message-part persistence.
+- [ ] Create generated/received file metadata schema.
+- [ ] Store large binary content outside SQLite.
+- [ ] Implement conversation repository.
+- [ ] Implement message repository.
+- [ ] Add tests for persistence and migrations.
+- [ ] Add partial-message persistence behavior.
+
+**Done when:**
+
+- [ ] Conversations survive server restarts.
+- [ ] Partial, cancelled, failed, and completed assistant messages are represented consistently.
+- [ ] Database migrations are versioned and tested.
+
+---
+
+## 6. Client Foundation
+
+- [ ] Create Avalonia application shell.
+- [ ] Add MVVM infrastructure using CommunityToolkit.
+- [ ] Create client configuration loading.
+- [ ] Create client data directory under `~/.zaphira/client/`.
+- [ ] Add client logging.
+- [ ] Add settings shell.
+- [ ] Add backend connection state.
+- [ ] Add first-run shell.
+- [ ] Add basic navigation.
+
+**Done when:**
+
+- [ ] The client starts cleanly.
+- [ ] The client can show connected, connecting, unavailable, and setup-required states.
+- [ ] UI state is separated from server-owned conversation state.
+
+---
+
+## 7. Local Backend Process Management
+
+- [ ] Bundle or locate the server payload for local development.
+- [ ] Implement client-launched backend startup.
+- [ ] Track whether the client owns the backend process.
+- [ ] Avoid stopping a backend the client did not start.
+- [ ] Implement graceful shutdown for owned local backend.
+- [ ] Handle backend startup failures.
+- [ ] Add retry behavior.
+
+**Done when:**
+
+- [ ] Launching the client can start/connect to a local backend.
+- [ ] Backend ownership rules are respected.
+- [ ] Failure states are clear and recoverable.
+
+---
+
+## 8. HTTPS and Local Trust
+
+- [ ] Generate runtime certificate when needed.
+- [ ] Store certificate material in the server data directory or platform-appropriate store.
+- [ ] Configure ASP.NET Core HTTPS.
+- [ ] Configure client trust for local client-launched backend.
+- [ ] Associate connection records with backend identity/certificate information.
+- [ ] Add diagnostics for certificate/trust failures.
+
+**Done when:**
+
+- [ ] Client/server communication uses HTTPS.
+- [ ] Local first-run remains zero-intervention when possible.
+- [ ] Trust failures are explained clearly.
+
+---
+
+## 9. Provider Foundation
+
+- [ ] Define LLM provider interface around semantic capabilities.
+- [ ] Define model listing contract.
+- [ ] Define generation request contract.
+- [ ] Define generation event contract.
+- [ ] Define cancellation behavior.
+- [ ] Define provider error model.
+- [ ] Add fake/test provider.
+- [ ] Add provider contract tests.
+
+**Done when:**
+
+- [ ] Chat can be exercised through a fake provider without Ollama.
+- [ ] The application layer does not depend on Ollama-specific behavior.
+
+---
+
+## 10. Ollama Provider
+
+- [ ] Detect Ollama availability.
+- [ ] Decide whether CLI, HTTP API, or both are used internally by the provider.
+- [ ] List installed Ollama models.
+- [ ] Inspect model metadata where available.
+- [ ] Generate a basic response.
+- [ ] Stream response output.
+- [ ] Propagate cancellation.
+- [ ] Surface provider errors clearly.
+- [ ] Add integration tests gated on local Ollama availability.
+
+**Done when:**
+
+- [ ] An installed Ollama model can produce a streamed response through the provider abstraction.
+- [ ] Missing or unusable Ollama is represented as a clear provider availability state.
+
+---
+
+## 11. Chat API
+
+- [ ] Create conversation endpoints.
+- [ ] Create message retrieval endpoints.
+- [ ] Create send-message endpoint.
+- [ ] Create streaming generation endpoint.
+- [ ] Create cancellation endpoint or cancellation mechanism.
+- [ ] Persist user messages.
+- [ ] Persist assistant message state during generation.
+- [ ] Return clear errors for missing provider/model/backend state.
+- [ ] Add server/API tests.
+
+**Done when:**
+
+- [ ] A client can create/select a conversation, send text, stream an answer, cancel generation, and reload persisted history.
+
+---
+
+## 12. Chat UI
+
+- [ ] Build main chat layout.
+- [ ] Build conversation list.
+- [ ] Build conversation rename.
+- [ ] Build conversation delete with confirmation or undo.
+- [ ] Build message composer.
+- [ ] Build streaming assistant message view.
+- [ ] Build stop control.
+- [ ] Build message status/error presentation.
+- [ ] Build Markdown rendering.
+- [ ] Build syntax-highlighted code rendering.
+- [ ] Build fallback rendering for unknown message parts.
+- [ ] Add keyboard and accessibility basics.
+
+**Done when:**
+
+- [ ] A user can chat with an installed local model and see persisted conversation history after restart.
+- [ ] Streaming and cancellation feel responsive.
+
+---
+
+## 13. First-Run and Availability States
+
+- [ ] Detect backend unavailable.
+- [ ] Detect no provider/runtime available.
+- [ ] Detect no installed model.
+- [ ] Detect offline with no cached catalog.
+- [ ] Detect catalog unavailable.
+- [ ] Provide clear blocking states.
+- [ ] Provide Retry action.
+- [ ] Provide Settings action.
+- [ ] Preserve onboarding state when returning from settings.
+
+**Done when:**
+
+- [ ] Missing dependencies never look like a broken app.
+- [ ] The user gets a clear explanation and the next sensible action.
+
+---
+
+## 14. Model Finder and Catalog
+
+- [ ] Create catalog-source abstraction.
+- [ ] Implement Hugging Face catalog source.
+- [ ] Cache catalog metadata locally.
+- [ ] Add 24-hour normal cache policy.
+- [ ] Add Sync Now operation.
+- [ ] Define purpose/capability taxonomy.
+- [ ] Implement search by name.
+- [ ] Implement purpose/capability filters.
+- [ ] Represent compatibility confidence.
+- [ ] Distinguish directly usable, possibly usable, unsupported, and unknown models.
+- [ ] Explain why a model matched where practical.
+- [ ] Preserve cached catalog access offline.
+
+**Done when:**
+
+- [ ] Users can find potentially useful models in-app by purpose and practical fit.
+- [ ] Hugging Face is a source strategy, not the product boundary.
+
+---
+
+## 15. Hardware-Aware Compatibility
+
+- [ ] Detect operating system.
+- [ ] Detect CPU.
+- [ ] Detect physical/system memory.
+- [ ] Detect GPU information where practical.
+- [ ] Detect unified memory where practical.
+- [ ] Add configurable memory headroom.
+- [ ] Estimate compatibility conservatively.
+- [ ] Explain uncertainty in compatibility results.
+- [ ] Add tests for compatibility calculations.
+
+**Done when:**
+
+- [ ] Zaphira avoids presenting obviously unsuitable models as compatible.
+- [ ] Compatibility results expose uncertainty instead of pretending to be perfect.
+
+---
+
+## 16. Model Management
+
+- [ ] List installed models.
+- [ ] Select active/default model.
+- [ ] Install/download model through provider-specific mechanism.
+- [ ] Show installation progress where available.
+- [ ] Cancel installation where supported.
+- [ ] Remove installed models.
+- [ ] Handle disk/network/provider failures.
+- [ ] Keep provider-specific mechanics behind provider abstractions.
+
+**Done when:**
+
+- [ ] Users can see and manage installed local models without understanding provider internals.
+
+---
+
+## 17. Remote Backend and Pairing
+
+- [ ] Add remote backend address setting.
+- [ ] Check whether a remote Zaphira backend is reachable.
+- [ ] Implement human-mediated pairing flow.
+- [ ] Generate/display pairing code on backend.
+- [ ] Accept pairing code in client.
+- [ ] Issue and store pairing credentials.
+- [ ] Bind pairing to backend identity/certificate.
+- [ ] Persist connection information.
+- [ ] View known pairings.
+- [ ] Remove/revoke pairings.
+- [ ] Surface connection and trust errors clearly.
+
+**Done when:**
+
+- [ ] A user can intentionally pair with a trusted backend over HTTPS.
+- [ ] Revoked pairings are not silently reused.
+
+---
+
+## 18. Media and Files
+
+- [ ] Define backend-owned file storage layout.
+- [ ] Define client cache behavior.
+- [ ] Render image parts inline.
+- [ ] Render other supported media where practical.
+- [ ] Render files clearly.
+- [ ] Implement Save As for media/file parts.
+- [ ] Prevent large binary content from being stored directly in SQLite.
+- [ ] Add fallback presentation for unsupported media.
+
+**Done when:**
+
+- [ ] Semantic media/file message parts can be displayed, cached, and saved without making the client authoritative.
+
+---
+
+## 19. Packaging and Upgrade Safety
+
+- [ ] Choose macOS packaging approach.
+- [ ] Produce self-contained or runtime-dependent build.
+- [ ] Bundle backend payload.
+- [ ] Ensure headless backend does not create an unwanted Dock icon.
+- [ ] Verify user data survives app replacement.
+- [ ] Add basic upgrade/migration test path.
+- [ ] Document runtime requirements.
+
+**Done when:**
+
+- [ ] A user can install/replace the app without losing conversations or settings.
+
+---
+
+## 20. Observability and Diagnostics
+
+- [ ] Add rolling client logs.
+- [ ] Add rolling server logs.
+- [ ] Add configurable retention.
+- [ ] Add startup/shutdown diagnostics.
+- [ ] Add backend connection diagnostics.
+- [ ] Add TLS/pairing diagnostics.
+- [ ] Add provider/model diagnostics.
+- [ ] Ensure conversation content is not logged by default.
+
+**Done when:**
+
+- [ ] Failures can be diagnosed without exposing sensitive content by default.
+
+---
+
+## 21. MVP Validation
+
+- [ ] Fresh install starts.
+- [ ] Local backend starts automatically when needed.
+- [ ] Missing backend/provider/model states are clear.
+- [ ] Installed model can be selected.
+- [ ] Text message can be sent.
+- [ ] Assistant response streams.
+- [ ] Generation can be cancelled.
+- [ ] Markdown renders.
+- [ ] Code blocks render readably.
+- [ ] Conversations persist after restart.
+- [ ] Conversations can be renamed.
+- [ ] Conversations can be deleted safely.
+- [ ] Cached model metadata works offline.
+- [ ] Sync Now refreshes when online.
+- [ ] Remote backend can be configured and paired.
+- [ ] Logs are useful and do not record sensitive content by default.
+
+**Done when:**
+
+- [ ] Zaphira feels like a complete local chat product rather than a technical demo.
+
