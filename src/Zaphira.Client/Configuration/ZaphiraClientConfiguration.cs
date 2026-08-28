@@ -20,5 +20,5 @@ public sealed record ZaphiraClientConfiguration
     public bool StartsInFirstRun { get; }
 
     public static ZaphiraClientConfiguration Default() =>
-        new(new Uri("https://localhost:5051"), startsInFirstRun: true);
+        new(new Uri("https://localhost:5051"), startsInFirstRun: false);
 }

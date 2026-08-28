@@ -17,6 +17,8 @@ namespace Zaphira.Client;
 
 public partial class App : Application
 {
+    private LocalBackendProcessManager localBackendProcessManager = CreateMissingBackendProcessManager();
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -32,9 +34,18 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    private async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
         ZaphiraClientConfiguration configuration = await LoadConfigurationAsync();
+        LocalBackendProcessManager localBackendProcessManager = CreateLocalBackendProcessManager(configuration);
+        using HttpClient startupProbeHttpClient = CreateLocalBackendStartupProbeClient(configuration);
+        LocalBackendStartupCoordinator startupCoordinator = new(
+            configuration.BackendAddress,
+            new HttpBackendConnectionProbe(startupProbeHttpClient),
+            localBackendProcessManager,
+            readinessCheckCount: 20,
+            readinessCheckDelay: TimeSpan.FromMilliseconds(250));
+        await startupCoordinator.EnsureLocalBackendIsAvailableAsync(CancellationToken.None);
         ZaphiraClientDataDirectories dataDirectories = ZaphiraClientDataDirectories.ForCurrentUser();
         ZaphiraClientConfigurationLoader configurationLoader = new(dataDirectories);
         TrustedBackendConnectionStore connectionStore = new(dataDirectories);
@@ -61,7 +72,22 @@ public partial class App : Application
         desktop.MainWindow = mainWindow;
         mainWindow.Show();
         mainWindow.Activate();
+        this.localBackendProcessManager = localBackendProcessManager;
+        desktop.ShutdownRequested += OnShutdownRequested;
+
         await viewModel.InitializeAsync(CancellationToken.None);
+    }
+
+    private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs eventArgs)
+    {
+        try
+        {
+            await localBackendProcessManager.StopAsync(CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            // Shutdown should continue even if the owned backend has already exited.
+        }
     }
 
     private static async Task<ZaphiraClientConfiguration> LoadConfigurationAsync()
@@ -110,4 +136,58 @@ public partial class App : Application
 
         return httpClient;
     }
+
+    private static HttpClient CreateLocalBackendStartupProbeClient(ZaphiraClientConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        return new HttpClient(new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        })
+        {
+            BaseAddress = configuration.BackendAddress
+        };
+    }
+
+    private static LocalBackendProcessManager CreateLocalBackendProcessManager(ZaphiraClientConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        string serverOutputDirectory = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "Zaphira.Server",
+            "bin",
+            "Debug",
+            "net10.0"));
+        LocalBackendPayloadLocation location = new LocalBackendPayloadLocator(serverOutputDirectory).Locate();
+        string executablePath = location is AvailableLocalBackendPayload available
+            ? available.ExecutablePath
+            : Path.Combine(serverOutputDirectory, "Zaphira.Server.dll");
+        string arguments = $"--Zaphira:Https:Port={configuration.BackendAddress.Port}";
+
+        return new LocalBackendProcessManager(
+            new OperatingSystemBackendProcessLauncher(),
+            new LocalBackendProcessOptions(
+                executablePath,
+                arguments,
+                serverOutputDirectory,
+                startupRetryCount: 1,
+                TimeSpan.FromMilliseconds(250)));
+    }
+
+    private static LocalBackendProcessManager CreateMissingBackendProcessManager() =>
+        new(
+            new OperatingSystemBackendProcessLauncher(),
+            new LocalBackendProcessOptions(
+                "__zaphira_missing_backend__",
+                string.Empty,
+                AppContext.BaseDirectory,
+                startupRetryCount: 0,
+                TimeSpan.Zero));
+
 }

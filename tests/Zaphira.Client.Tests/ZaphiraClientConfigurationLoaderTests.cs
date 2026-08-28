@@ -15,7 +15,7 @@ public sealed class ZaphiraClientConfigurationLoaderTests
         ZaphiraClientConfiguration configuration = await loader.LoadOrCreateAsync(CancellationToken.None);
 
         Assert.Equal(new Uri("https://localhost:5051"), configuration.BackendAddress);
-        Assert.True(configuration.StartsInFirstRun);
+        Assert.False(configuration.StartsInFirstRun);
         Assert.True(File.Exists(directories.SettingsFile));
 
         Directory.Delete(homeDirectory, recursive: true);

@@ -154,6 +154,7 @@
 - [x] Implement graceful shutdown for owned local backend.
 - [x] Handle backend startup failures.
 - [x] Add retry behavior.
+- [x] Configure VS Code to launch only the client in local development.
 
 **Done when:**
 
@@ -408,7 +409,7 @@
 ## 21. MVP Validation
 
 - [ ] Fresh install starts.
-- [ ] Local backend starts automatically when needed.
+- [x] Local backend starts automatically when needed.
 - [ ] Missing backend/provider/model states are clear.
 - [ ] Installed model can be selected.
 - [ ] Text message can be sent.
