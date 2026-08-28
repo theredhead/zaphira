@@ -14,6 +14,7 @@ internal static class ChatApiEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup("/api");
 
+        group.MapGet("/models", GetModelsAsync);
         group.MapPost("/conversations", CreateConversationAsync);
         group.MapGet("/conversations", GetConversationsAsync);
         group.MapPatch("/conversations/{conversationId:guid}", RenameConversationAsync);
@@ -24,6 +25,26 @@ internal static class ChatApiEndpoints
         group.MapPost("/conversations/{conversationId:guid}/messages/{assistantMessageId:guid}/cancel", CancelMessageAsync);
 
         return endpoints;
+    }
+
+    private static async Task<IResult> GetModelsAsync(
+        IChatModelProvider provider,
+        CancellationToken cancellationToken)
+    {
+        ProviderModelCatalog catalog;
+        try
+        {
+            catalog = await provider.ListModelsAsync(cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Results.Json(ErrorResponse.ProviderUnavailable(), statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return Results.Ok(new ModelListResponse(
+            catalog.ProviderId.Value,
+            provider.DisplayName,
+            catalog.Models.Select(ToResponse).ToArray()));
     }
 
     private static async Task<IResult> CreateConversationAsync(
@@ -311,6 +332,12 @@ internal static class ChatApiEndpoints
 
     private static ConversationResponse ToResponse(ConversationSummary summary) =>
         new(summary.Id.Value, summary.Title, summary.Preview.Text, summary.MessageCount, summary.CreatedAt, summary.UpdatedAt);
+
+    private static ModelResponse ToResponse(ProviderModelSummary model) =>
+        new(
+            model.Id.Value,
+            model.DisplayName,
+            model.Capabilities.Values.Select(capability => capability.ToString()).ToArray());
 
     private static async Task<bool> ConversationExistsAsync(
         IConversationRepository conversationRepository,

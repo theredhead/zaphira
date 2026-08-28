@@ -2,6 +2,7 @@
 using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
+using Zaphira.Contracts;
 
 namespace Zaphira.Client.ViewModels;
 
@@ -59,12 +60,18 @@ public partial class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref backendConnectionState, value))
             {
                 OnPropertyChanged(nameof(BackendConnectionStateText));
+                OnPropertyChanged(nameof(AvailabilitySuggestionText));
                 OnPropertyChanged(nameof(IsBackendUnavailable));
+                OnPropertyChanged(nameof(HasBlockingAvailabilityState));
             }
         }
     }
 
     public bool IsBackendUnavailable => BackendConnectionState == BackendConnectionState.Unavailable;
+
+    public bool HasBlockingAvailabilityState => BackendConnectionState is BackendConnectionState.Unavailable
+        or BackendConnectionState.ProviderUnavailable
+        or BackendConnectionState.NoInstalledModel;
 
     public ChatWorkspaceViewModel ChatWorkspace { get; }
 
@@ -76,7 +83,18 @@ public partial class MainWindowViewModel : ViewModelBase
         BackendConnectionState.Connected => "Connected",
         BackendConnectionState.Unavailable => "Unavailable",
         BackendConnectionState.SetupRequired => "Setup required",
+        BackendConnectionState.ProviderUnavailable => "Provider unavailable",
+        BackendConnectionState.NoInstalledModel => "No installed model",
         _ => "Unknown"
+    };
+
+    public string AvailabilitySuggestionText => BackendConnectionState switch
+    {
+        BackendConnectionState.Unavailable => "Start the backend or check the backend address, then try again.",
+        BackendConnectionState.ProviderUnavailable => "Start the provider, go online if needed, then try again.",
+        BackendConnectionState.NoInstalledModel => "Install a local model or choose settings to configure a provider.",
+        BackendConnectionState.SetupRequired => "Complete setup to connect Zaphira.",
+        _ => string.Empty
     };
 
     public ClientPage SelectedPage
@@ -129,9 +147,28 @@ public partial class MainWindowViewModel : ViewModelBase
             ? BackendConnectionState.Connected
             : BackendConnectionState.Unavailable;
 
-        if (BackendConnectionState == BackendConnectionState.Connected)
+        if (BackendConnectionState != BackendConnectionState.Connected)
         {
-            await ChatWorkspace.LoadAsync(cancellationToken);
+            return;
         }
+
+        ModelListResponse models;
+        try
+        {
+            models = await ChatWorkspace.GetInstalledModelsAsync(cancellationToken);
+        }
+        catch (ChatApiException exception) when (exception.Error.Code == ErrorResponse.ProviderUnavailable().Code)
+        {
+            BackendConnectionState = BackendConnectionState.ProviderUnavailable;
+            return;
+        }
+
+        if (models.Models.Count == 0)
+        {
+            BackendConnectionState = BackendConnectionState.NoInstalledModel;
+            return;
+        }
+
+        await ChatWorkspace.LoadAsync(cancellationToken);
     }
 }

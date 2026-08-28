@@ -57,6 +57,9 @@ public sealed class MainWindowViewModelTests
 
         Assert.Equal(BackendConnectionState.Unavailable, viewModel.BackendConnectionState);
         Assert.Equal("Unavailable", viewModel.BackendConnectionStateText);
+        Assert.Equal(
+            "Start the backend or check the backend address, then try again.",
+            viewModel.AvailabilitySuggestionText);
         Assert.True(viewModel.IsBackendUnavailable);
     }
 
@@ -68,6 +71,7 @@ public sealed class MainWindowViewModelTests
             new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
             new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
             new EmptyChatApiClient(
+                conversations:
                 [
                     new ConversationResponse(
                         conversationId,
@@ -76,6 +80,10 @@ public sealed class MainWindowViewModelTests
                         0,
                         DateTimeOffset.UtcNow,
                         DateTimeOffset.UtcNow)
+                ],
+                models:
+                [
+                    new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])
                 ]));
 
         await viewModel.InitializeAsync(CancellationToken.None);
@@ -83,6 +91,47 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(BackendConnectionState.Connected, viewModel.BackendConnectionState);
         Assert.Single(viewModel.ChatWorkspace.Conversations);
         Assert.Equal(conversationId, viewModel.ChatWorkspace.SelectedConversation.Id);
+    }
+
+    [Fact]
+    public async Task InitializeMarksProviderUnavailableWhenModelListFails()
+    {
+        MainWindowViewModel viewModel = new(
+            new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
+            new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
+            new EmptyChatApiClient(
+                conversations: [],
+                models: [],
+                modelListFailure: new ChatApiException(
+                    503,
+                    ErrorResponse.ProviderUnavailable())));
+
+        await viewModel.InitializeAsync(CancellationToken.None);
+
+        Assert.Equal(BackendConnectionState.ProviderUnavailable, viewModel.BackendConnectionState);
+        Assert.Equal("Provider unavailable", viewModel.BackendConnectionStateText);
+        Assert.Equal(
+            "Start the provider, go online if needed, then try again.",
+            viewModel.AvailabilitySuggestionText);
+        Assert.True(viewModel.HasBlockingAvailabilityState);
+    }
+
+    [Fact]
+    public async Task InitializeMarksNoInstalledModelWhenCatalogIsEmpty()
+    {
+        MainWindowViewModel viewModel = new(
+            new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
+            new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
+            new EmptyChatApiClient());
+
+        await viewModel.InitializeAsync(CancellationToken.None);
+
+        Assert.Equal(BackendConnectionState.NoInstalledModel, viewModel.BackendConnectionState);
+        Assert.Equal("No installed model", viewModel.BackendConnectionStateText);
+        Assert.Equal(
+            "Install a local model or choose settings to configure a provider.",
+            viewModel.AvailabilitySuggestionText);
+        Assert.True(viewModel.HasBlockingAvailabilityState);
     }
 
     private sealed class FakeBackendConnectionProbe : IBackendConnectionProbe
@@ -108,17 +157,36 @@ public sealed class MainWindowViewModelTests
     private sealed class EmptyChatApiClient : IChatApiClient
     {
         private readonly IReadOnlyList<ConversationResponse> conversations;
+        private readonly IReadOnlyList<ModelResponse> models;
+        private readonly ChatApiException modelListFailure;
 
         public EmptyChatApiClient()
-            : this([])
+            : this([], [])
         {
         }
 
-        public EmptyChatApiClient(IReadOnlyList<ConversationResponse> conversations)
+        public EmptyChatApiClient(
+            IReadOnlyList<ConversationResponse> conversations,
+            IReadOnlyList<ModelResponse> models,
+            ChatApiException? modelListFailure = null)
         {
             ArgumentNullException.ThrowIfNull(conversations);
+            ArgumentNullException.ThrowIfNull(models);
 
             this.conversations = conversations;
+            this.models = models;
+            this.modelListFailure = modelListFailure ?? ChatApiException.None;
+        }
+
+        public Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (modelListFailure != ChatApiException.None)
+            {
+                throw modelListFailure;
+            }
+
+            return Task.FromResult(new ModelListResponse("fake", "Fake Provider", models));
         }
 
         public Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken)

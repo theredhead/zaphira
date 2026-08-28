@@ -4,6 +4,8 @@ namespace Zaphira.Client.Chat;
 
 public interface IChatApiClient
 {
+    Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken);
 
     Task<ConversationResponse> CreateConversationAsync(string title, CancellationToken cancellationToken);

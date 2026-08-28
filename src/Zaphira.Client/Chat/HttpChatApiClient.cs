@@ -18,6 +18,14 @@ public sealed class HttpChatApiClient : IChatApiClient
         this.httpClient = httpClient;
     }
 
+    public async Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken)
+    {
+        using HttpResponseMessage response = await httpClient.GetAsync("/api/models", cancellationToken);
+        await ThrowIfErrorAsync(response, cancellationToken);
+
+        return await ReadRequiredJsonAsync<ModelListResponse>(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken)
     {
         using HttpResponseMessage response = await httpClient.GetAsync("/api/conversations", cancellationToken);

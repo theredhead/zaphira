@@ -291,6 +291,17 @@ public sealed class ChatWorkspaceViewModelTests
 
         public int SendMessageCallCount { get; private set; }
 
+        public Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken)
+        {
+            ThrowFailureIfNeeded();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new ModelListResponse(
+                "fake",
+                "Fake Provider",
+                [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])]));
+        }
+
         public Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken)
         {
             ThrowFailureIfNeeded();

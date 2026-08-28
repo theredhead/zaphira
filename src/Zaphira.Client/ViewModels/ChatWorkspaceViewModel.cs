@@ -34,6 +34,9 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
 
     public ObservableCollection<ChatMessageViewModel> Messages { get; }
 
+    public Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken) =>
+        chatApiClient.GetInstalledModelsAsync(cancellationToken);
+
     public ConversationItemViewModel SelectedConversation
     {
         get => selectedConversation;

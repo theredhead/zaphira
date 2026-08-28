@@ -125,6 +125,62 @@ public sealed class ChatApiTests
     }
 
     [Fact]
+    public async Task GetModelsReturnsInstalledProviderModels()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+
+        ModelListResponse? response = await client.GetFromJsonAsync<ModelListResponse>("/api/models");
+
+        Assert.NotNull(response);
+        Assert.Equal("fake", response.ProviderId);
+        Assert.Equal("Fake Provider", response.ProviderDisplayName);
+        ModelResponse model = Assert.Single(response.Models);
+        Assert.Equal("fake-chat", model.Id);
+        Assert.Equal("Fake Chat", model.DisplayName);
+        Assert.Contains("TextGeneration", model.Capabilities);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task GetModelsReturnsEmptyListWhenProviderHasNoInstalledModels()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory, new EmptyChatModelProvider());
+        using HttpClient client = factory.CreateClient();
+
+        ModelListResponse? response = await client.GetFromJsonAsync<ModelListResponse>("/api/models");
+
+        Assert.NotNull(response);
+        Assert.Equal("empty", response.ProviderId);
+        Assert.Empty(response.Models);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task GetModelsReturnsServiceUnavailableForUnavailableProvider()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory, new UnavailableChatModelProvider());
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage response = await client.GetAsync("/api/models");
+        ErrorResponse? error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("provider_unavailable", error.Code);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
     public async Task SendMessagePersistsUserAndPendingAssistantMessages()
     {
         string homeDirectory = CreateTemporaryHomeDirectory();
@@ -417,6 +473,34 @@ public sealed class ChatApiTests
                 "Provider.Unavailable",
                 "Provider is unavailable.",
                 "Start the provider and try again."));
+        }
+    }
+
+    private sealed class EmptyChatModelProvider : IChatModelProvider
+    {
+        public ProviderId Id { get; } = new("empty");
+
+        public string DisplayName { get; } = "Empty Provider";
+
+        public ProviderCapabilities Capabilities { get; } =
+            new([ProviderCapability.TextGeneration, ProviderCapability.StreamingGeneration]);
+
+        public Task<ProviderModelCatalog> ListModelsAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new ProviderModelCatalog(Id, []));
+        }
+
+        public async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
+            ProviderGenerationRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Task.Yield();
+            yield return GenerationCompletedEvent.Instance;
         }
     }
 }
