@@ -68,13 +68,13 @@
 - [x] Define semantic message model.
 - [x] Define ordered message parts.
 - [x] Define text message part.
-- [ ] Define file/media reference message parts.
-- [ ] Define reasoning message part placeholder.
-- [ ] Define unknown/unsupported part handling.
+- [x] Define file/media reference message parts.
+- [x] Define reasoning message part placeholder.
+- [x] Define unknown/unsupported part handling.
 - [x] Define message status values.
-- [ ] Define conversation summary/list model.
-- [ ] Define provider/model identifiers.
-- [ ] Define provider capability model.
+- [x] Define conversation summary/list model.
+- [x] Define provider/model identifiers.
+- [x] Define provider capability model.
 - [x] Add domain tests for invariants.
 
 **Done when:**
