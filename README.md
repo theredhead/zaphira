@@ -31,3 +31,14 @@ dotnet test Zaphira.sln -maxcpucount:1
 
 The single-node MSBuild option keeps early solution builds deterministic in the
 current development environment.
+
+### VS Code
+
+Install the recommended C# extensions when VS Code prompts for them, then use
+Run and Debug -> `Zaphira App` to build and start the server and client together.
+
+Useful tasks are available through `Terminal -> Run Task`:
+
+- `restore`
+- `build`
+- `test`

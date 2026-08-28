@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Zaphira Client",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/Zaphira.Client/bin/Debug/net10.0/Zaphira.Client.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Zaphira.Client",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Zaphira Server",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/Zaphira.Server/bin/Debug/net10.0/Zaphira.Server.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Zaphira.Server",
+      "console": "internalConsole",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Zaphira__Https__Port": "5051"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Zaphira App",
+      "configurations": [
+        "Zaphira Server",
+        "Zaphira Client"
+      ],
+      "preLaunchTask": "build",
+      "stopAll": true
+    }
+  ]
+}

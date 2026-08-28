@@ -1,0 +1,9 @@
+{
+  "dotnet.defaultSolution": "Zaphira.sln",
+  "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
+  "editor.formatOnSave": true,
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true
+  }
+}
