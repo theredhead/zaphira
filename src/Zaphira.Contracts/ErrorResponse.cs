@@ -34,6 +34,9 @@ public sealed record ErrorResponse
     public static ErrorResponse ProviderUnavailable() =>
         new("provider_unavailable", "The model provider is unavailable.", "Start the provider, go online if needed, then try again.");
 
+    public static ErrorResponse CatalogUnavailable() =>
+        new("catalog_unavailable", "The model catalog is unavailable.", "Go online and try syncing the catalog again.");
+
     public static ErrorResponse UnexpectedServerError() =>
         new("unexpected_server_error", "The server hit an unexpected error.", "Try again.");
 }

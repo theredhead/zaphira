@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Zaphira.Application;
+using Zaphira.Application.ModelCatalog;
 using Zaphira.Application.Providers;
 using Zaphira.Infrastructure.Security;
 using Zaphira.Contracts;
+using Zaphira.Infrastructure.ModelCatalog;
 using Zaphira.Infrastructure.Persistence;
 using Zaphira.Infrastructure.Providers.Ollama;
 using Zaphira.Infrastructure.Storage;
 using Zaphira.Server.Chat;
 using Zaphira.Server.Configuration;
+using Zaphira.Server.ModelCatalog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +37,18 @@ builder.Services.AddSingleton<IChatModelProvider>(_ =>
         BaseAddress = new Uri("http://localhost:11434")
     }));
 builder.Services.AddSingleton<GenerationCancellationRegistry>();
+builder.Services.AddSingleton<ICatalogSource>(_ =>
+    new HuggingFaceCatalogSource(new HttpClient
+    {
+        BaseAddress = new Uri("https://huggingface.co")
+    }));
+builder.Services.AddSingleton<IModelCatalogCache>(serviceProvider =>
+    new FileModelCatalogCache(serviceProvider.GetRequiredService<ZaphiraDataDirectories>().ServerModelCatalogCacheFile));
+builder.Services.AddSingleton(serviceProvider =>
+    new ModelCatalogService(
+        serviceProvider.GetRequiredService<ICatalogSource>(),
+        serviceProvider.GetRequiredService<IModelCatalogCache>(),
+        TimeProvider.System));
 
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
@@ -101,6 +116,7 @@ app.MapGet("/health", () => Results.Ok(new HealthResponse("Zaphira.Server", "Hea
     .WithName("GetHealth");
 
 app.MapChatApi();
+app.MapModelCatalogApi();
 
 app.MapFallback(() => Results.NotFound(ErrorResponse.RouteNotFound()));
 

@@ -282,7 +282,7 @@
 - [x] Implement Hugging Face catalog source.
 - [x] Cache catalog metadata locally.
 - [x] Add 24-hour normal cache policy.
-- [ ] Add Sync Now operation.
+- [x] Add Sync Now operation.
 - [x] Define purpose/capability taxonomy.
 - [ ] Implement search by name.
 - [ ] Implement purpose/capability filters.
