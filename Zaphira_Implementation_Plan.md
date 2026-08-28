@@ -165,18 +165,18 @@
 
 ## 8. HTTPS and Local Trust
 
-- [ ] Generate runtime certificate when needed.
-- [ ] Store certificate material in the server data directory or platform-appropriate store.
-- [ ] Configure ASP.NET Core HTTPS.
-- [ ] Configure client trust for local client-launched backend.
-- [ ] Associate connection records with backend identity/certificate information.
-- [ ] Add diagnostics for certificate/trust failures.
+- [x] Generate runtime certificate when needed.
+- [x] Store certificate material in the server data directory or platform-appropriate store.
+- [x] Configure ASP.NET Core HTTPS.
+- [x] Configure client trust for local client-launched backend.
+- [x] Associate connection records with backend identity/certificate information.
+- [x] Add diagnostics for certificate/trust failures.
 
 **Done when:**
 
-- [ ] Client/server communication uses HTTPS.
-- [ ] Local first-run remains zero-intervention when possible.
-- [ ] Trust failures are explained clearly.
+- [x] Client/server communication uses HTTPS.
+- [x] Local first-run remains zero-intervention when possible.
+- [x] Trust failures are explained clearly.
 
 ---
 

@@ -17,6 +17,7 @@ public sealed class ZaphiraDataDirectoriesTests
         Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "server.db"), directories.ServerDatabaseFile);
         Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "settings.json"), directories.ServerSettingsFile);
         Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "certificates"), directories.ServerCertificatesRoot);
+        Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "certificates", "zaphira-localhost.pfx"), directories.ServerHttpsCertificateFile);
         Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "pairings"), directories.ServerPairingsRoot);
         Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "cache"), directories.ServerCacheRoot);
         Assert.Equal(Path.Combine(homeDirectory, ".zaphira", "server", "files"), directories.ServerFilesRoot);
