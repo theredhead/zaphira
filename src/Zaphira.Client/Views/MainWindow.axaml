@@ -53,6 +53,10 @@
                             Command="{Binding RefreshBackendConnectionCommand}"
                             IsVisible="{Binding HasBlockingAvailabilityState}"
                             TabIndex="4"/>
+                    <Button Content="Settings"
+                            Command="{Binding ShowSettingsCommand}"
+                            IsVisible="{Binding HasBlockingAvailabilityState}"
+                            TabIndex="5"/>
                 </StackPanel>
             </Grid>
         </Border>

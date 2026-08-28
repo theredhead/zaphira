@@ -266,7 +266,7 @@
 - [ ] Detect catalog unavailable.
 - [x] Provide clear blocking states.
 - [x] Provide Retry action.
-- [ ] Provide Settings action.
+- [x] Provide Settings action.
 - [ ] Preserve onboarding state when returning from settings.
 
 **Done when:**
