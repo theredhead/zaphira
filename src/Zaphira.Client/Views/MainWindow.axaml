@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Zaphira.Client.Views.MainWindow"
+        x:Name="Root"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Zaphira">
@@ -15,7 +16,7 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*" ColumnDefinitions="220,*" Background="#F7F7F4">
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="260,*" Background="#F7F7F4">
         <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#202124" Padding="16,10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <TextBlock Text="{Binding ApplicationTitle}"
@@ -35,21 +36,120 @@
         </Border>
 
         <Border Grid.Row="1" Grid.Column="0" Background="#ECEDE8" Padding="12">
-            <StackPanel Spacing="8">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+                <StackPanel Spacing="8">
                 <Button Content="Setup" Command="{Binding ShowFirstRunCommand}" HorizontalAlignment="Stretch"/>
                 <Button Content="Chat" Command="{Binding ShowChatCommand}" HorizontalAlignment="Stretch"/>
                 <Button Content="Settings" Command="{Binding ShowSettingsCommand}" HorizontalAlignment="Stretch"/>
-            </StackPanel>
+                </StackPanel>
+
+                <Button Grid.Row="1"
+                        Content="New Chat"
+                        Command="{Binding ChatWorkspace.StartNewConversationCommand}"
+                        HorizontalAlignment="Stretch"/>
+
+                <ScrollViewer Grid.Row="2">
+                    <ItemsControl ItemsSource="{Binding ChatWorkspace.Conversations}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:ConversationItemViewModel">
+                                <Button Command="{Binding DataContext.ChatWorkspace.SelectConversationCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        x:CompileBindings="False"
+                                        HorizontalAlignment="Stretch"
+                                        Padding="10"
+                                        Margin="0,0,0,8">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Preview}" FontSize="12" Opacity="0.76" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,*" Margin="24">
-            <TextBlock Text="{Binding SelectedPageTitle}"
-                       FontSize="24"
-                       FontWeight="SemiBold"
-                       Foreground="#202124"/>
-            <Border Grid.Row="1" Margin="0,18,0,0" BorderBrush="#D0D5D2" BorderThickness="1" Padding="18">
-                <TextBlock Text="{Binding SelectedPageTitle}" Foreground="#202124"/>
+        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="24" RowSpacing="16">
+            <Grid ColumnDefinitions="*,220" ColumnSpacing="16">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding SelectedPageTitle}"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="#202124"/>
+                    <TextBlock Text="{Binding ChatWorkspace.StatusText}"
+                               Foreground="#5F6B63"/>
+                </StackPanel>
+                <TextBox Grid.Column="1"
+                         Text="{Binding ChatWorkspace.ActiveModelId}"
+                         PlaceholderText="Model"
+                         VerticalAlignment="Top"/>
+            </Grid>
+
+            <Border Grid.Row="1" BorderBrush="#D0D5D2" BorderThickness="1" Padding="0" Background="#FFFFFF">
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding ChatWorkspace.Messages}" Margin="16">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:ChatMessageViewModel">
+                                <Border BorderBrush="#D8DDD9"
+                                        BorderThickness="1"
+                                        Background="#FAFBF9"
+                                        Padding="12"
+                                        Margin="0,0,0,12"
+                                        CornerRadius="6">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="{Binding Role}" FontWeight="SemiBold"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#6C746F"/>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding RenderedParts}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="vm:RenderedMessagePartViewModel">
+                                                    <StackPanel Spacing="6">
+                                                        <TextBlock Text="{Binding Text}"
+                                                                   IsVisible="{Binding IsTextPart}"
+                                                                   TextWrapping="Wrap"/>
+                                                        <Border IsVisible="{Binding IsCodeBlock}"
+                                                                Background="#202124"
+                                                                Padding="10"
+                                                                CornerRadius="4">
+                                                            <StackPanel Spacing="8">
+                                                                <TextBlock Text="{Binding CodeHeader}"
+                                                                           Foreground="#B9C4BC"
+                                                                           FontSize="12"/>
+                                                                <TextBlock Text="{Binding Text}"
+                                                                           Foreground="#F4F7F5"
+                                                                           FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                                           TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Border>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <TextBox Text="{Binding ChatWorkspace.ComposerText}"
+                         PlaceholderText="Message"
+                         AcceptsReturn="True"
+                         MinHeight="76"
+                         TextWrapping="Wrap"/>
+                <Button Grid.Column="1"
+                        Content="Stop"
+                        Command="{Binding ChatWorkspace.StopGenerationCommand}"
+                        VerticalAlignment="Stretch"/>
+                <Button Grid.Column="2"
+                        Content="Send"
+                        Command="{Binding ChatWorkspace.SendMessageCommand}"
+                        VerticalAlignment="Stretch"/>
+            </Grid>
         </Grid>
     </Grid>
 

@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
 
 namespace Zaphira.Client.ViewModels;
@@ -13,14 +14,26 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel(ZaphiraClientConfiguration configuration)
+        : this(
+            configuration,
+            new HttpChatApiClient(new HttpClient
+            {
+                BaseAddress = configuration.BackendAddress
+            }))
+    {
+    }
+
+    public MainWindowViewModel(ZaphiraClientConfiguration configuration, IChatApiClient chatApiClient)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(chatApiClient);
 
         BackendAddressText = configuration.BackendAddress.ToString();
         BackendConnectionState = configuration.StartsInFirstRun
             ? BackendConnectionState.SetupRequired
             : BackendConnectionState.Connecting;
         selectedPage = configuration.StartsInFirstRun ? ClientPage.FirstRun : ClientPage.Chat;
+        ChatWorkspace = new ChatWorkspaceViewModel(chatApiClient);
     }
 
     public string ApplicationTitle { get; } = "Zaphira";
@@ -28,6 +41,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public string BackendAddressText { get; }
 
     public BackendConnectionState BackendConnectionState { get; private set; }
+
+    public ChatWorkspaceViewModel ChatWorkspace { get; }
 
     public string BackendConnectionStateText => BackendConnectionState switch
     {

@@ -237,17 +237,17 @@
 
 ## 12. Chat UI
 
-- [ ] Build main chat layout.
-- [ ] Build conversation list.
+- [x] Build main chat layout.
+- [x] Build conversation list.
 - [ ] Build conversation rename.
 - [ ] Build conversation delete with confirmation or undo.
-- [ ] Build message composer.
-- [ ] Build streaming assistant message view.
-- [ ] Build stop control.
-- [ ] Build message status/error presentation.
+- [x] Build message composer.
+- [x] Build streaming assistant message view.
+- [x] Build stop control.
+- [x] Build message status/error presentation.
 - [ ] Build Markdown rendering.
 - [ ] Build syntax-highlighted code rendering.
-- [ ] Build fallback rendering for unknown message parts.
+- [x] Build fallback rendering for unknown message parts.
 - [ ] Add keyboard and accessibility basics.
 
 **Done when:**
