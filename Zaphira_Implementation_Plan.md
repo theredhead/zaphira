@@ -147,19 +147,19 @@
 
 ## 7. Local Backend Process Management
 
-- [ ] Bundle or locate the server payload for local development.
-- [ ] Implement client-launched backend startup.
-- [ ] Track whether the client owns the backend process.
-- [ ] Avoid stopping a backend the client did not start.
-- [ ] Implement graceful shutdown for owned local backend.
-- [ ] Handle backend startup failures.
-- [ ] Add retry behavior.
+- [x] Bundle or locate the server payload for local development.
+- [x] Implement client-launched backend startup.
+- [x] Track whether the client owns the backend process.
+- [x] Avoid stopping a backend the client did not start.
+- [x] Implement graceful shutdown for owned local backend.
+- [x] Handle backend startup failures.
+- [x] Add retry behavior.
 
 **Done when:**
 
-- [ ] Launching the client can start/connect to a local backend.
-- [ ] Backend ownership rules are respected.
-- [ ] Failure states are clear and recoverable.
+- [x] Launching the client can start/connect to a local backend.
+- [x] Backend ownership rules are respected.
+- [x] Failure states are clear and recoverable.
 
 ---
 
