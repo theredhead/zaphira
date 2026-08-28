@@ -29,7 +29,21 @@ public sealed class ChatMessageTests
     }
 
     [Fact]
-    public void ConstructorRejectsEmptyParts()
+    public void ConstructorAllowsEmptyPartsForPendingMessage()
+    {
+        ChatMessage message = new(
+            MessageId.New(),
+            ConversationId.New(),
+            MessageRole.Assistant,
+            [],
+            MessageStatus.Pending,
+            DateTimeOffset.UtcNow);
+
+        Assert.Empty(message.Parts);
+    }
+
+    [Fact]
+    public void ConstructorRejectsEmptyPartsForCompletedMessage()
     {
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             new ChatMessage(

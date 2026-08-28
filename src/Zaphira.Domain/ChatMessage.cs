@@ -13,9 +13,9 @@ public sealed record ChatMessage
         ArgumentNullException.ThrowIfNull(parts);
 
         IMessagePart[] materializedParts = parts.ToArray();
-        if (materializedParts.Length == 0)
+        if (materializedParts.Length == 0 && status == MessageStatus.Completed)
         {
-            throw new ArgumentException("A message must contain at least one part.", nameof(parts));
+            throw new ArgumentException("A completed message must contain at least one part.", nameof(parts));
         }
 
         if (materializedParts.Any(part => part is null))

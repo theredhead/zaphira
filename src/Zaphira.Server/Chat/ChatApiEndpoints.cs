@@ -239,7 +239,7 @@ internal static class ChatApiEndpoints
             MessageId.New(),
             domainConversationId,
             MessageRole.Assistant,
-            [new TextMessagePart("Response pending.")],
+            [],
             MessageStatus.Pending,
             now);
         ConversationSummary updatedSummary = new(
@@ -307,7 +307,10 @@ internal static class ChatApiEndpoints
             await messageRepository.SaveAsync(
                 UpdateAssistantMessage(assistantMessage, assistantMessage.Parts, MessageStatus.Streaming),
                 generationCancellationToken);
-            ProviderGenerationRequest generationRequest = new(domainModelId, messages);
+            ChatMessage[] generationMessages = messages
+                .Where(message => message.Id != domainAssistantMessageId)
+                .ToArray();
+            ProviderGenerationRequest generationRequest = new(domainModelId, generationMessages);
 
             await foreach (ProviderGenerationEvent generationEvent in provider.GenerateAsync(generationRequest, generationCancellationToken))
             {

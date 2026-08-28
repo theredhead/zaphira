@@ -79,7 +79,7 @@ public sealed class ChatMessageViewModel : ViewModelBase
     }
 
     public static ChatMessageViewModel PendingAssistant(Guid id) =>
-        new(id, "Assistant", "Pending", [new MessagePartResponse("text", string.Empty)]);
+        new(id, "Assistant", "Pending", []);
 
     public static ChatMessageViewModel User(Guid id, string text) =>
         new(id, "User", "Completed", [new MessagePartResponse("text", text)]);

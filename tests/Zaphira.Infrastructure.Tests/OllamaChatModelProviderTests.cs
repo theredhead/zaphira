@@ -91,6 +91,31 @@ public sealed class OllamaChatModelProviderTests
     }
 
     [Fact]
+    public async Task GenerateAsyncIgnoresEmptyMetadataEvents()
+    {
+        FakeHttpMessageHandler handler = new((request, _) => Task.FromResult(
+            request.RequestUri!.AbsolutePath == "/api/chat"
+                ? StreamResponse(
+                    """
+                    {"model":"llama3.2","created_at":"2026-08-28T18:00:00Z","done":false}
+                    {"message":{"content":"Hello"},"done":false}
+                    {"done":true}
+                    """)
+                : JsonResponse(HttpStatusCode.NotFound, "{}")));
+        OllamaChatModelProvider provider = CreateProvider(handler);
+
+        List<ProviderGenerationEvent> events = [];
+        await foreach (ProviderGenerationEvent generationEvent in provider.GenerateAsync(CreateRequest(), CancellationToken.None))
+        {
+            events.Add(generationEvent);
+        }
+
+        Assert.Equal(2, events.Count);
+        Assert.Equal("Hello", Assert.IsType<TextGenerationDeltaEvent>(events[0]).Text);
+        Assert.IsType<GenerationCompletedEvent>(events[1]);
+    }
+
+    [Fact]
     public async Task GenerateAsyncReturnsFailureEventForProviderErrors()
     {
         FakeHttpMessageHandler handler = new((request, _) => Task.FromResult(

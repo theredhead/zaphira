@@ -25,11 +25,6 @@ public sealed record ChatMessageResponse
         ArgumentNullException.ThrowIfNull(parts);
 
         MessagePartResponse[] materializedParts = parts.ToArray();
-        if (materializedParts.Length == 0)
-        {
-            throw new ArgumentException("Message response must contain at least one part.", nameof(parts));
-        }
-
         if (materializedParts.Any(part => part is null))
         {
             throw new ArgumentException("Message parts cannot contain null values.", nameof(parts));

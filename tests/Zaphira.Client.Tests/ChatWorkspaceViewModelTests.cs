@@ -278,14 +278,11 @@ public sealed class ChatWorkspaceViewModelTests
     }
 
     [Fact]
-    public void PendingAssistantHasNonNullEmptyParagraph()
+    public void PendingAssistantHasNoContentParts()
     {
         ChatMessageViewModel viewModel = ChatMessageViewModel.PendingAssistant(Guid.NewGuid());
 
-        Assert.Single(viewModel.RenderedParts);
-        Assert.True(viewModel.RenderedParts[0].IsParagraph);
-        Assert.Equal(string.Empty, viewModel.RenderedParts[0].Text);
-        Assert.Equal(string.Empty, viewModel.RenderedParts[0].Language);
+        Assert.Empty(viewModel.RenderedParts);
     }
 
     [Fact]

@@ -127,6 +127,11 @@ public sealed class OllamaChatModelProvider : IChatModelProvider
             }
 
             ProviderGenerationEvent generationEvent = ParseGenerationEvent(line);
+            if (generationEvent is EmptyGenerationEvent)
+            {
+                continue;
+            }
+
             yield return generationEvent;
 
             if (generationEvent is GenerationCompletedEvent)
@@ -314,7 +319,7 @@ public sealed class OllamaChatModelProvider : IChatModelProvider
 
         return done
             ? GenerationCompletedEvent.Instance
-            : new TextGenerationDeltaEvent(" ");
+            : EmptyGenerationEvent.Instance;
     }
 
     private static ProviderModelInstallationEvent ParseInstallationEvent(ModelId modelId, string line)

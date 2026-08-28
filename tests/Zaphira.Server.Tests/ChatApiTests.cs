@@ -319,6 +319,35 @@ public sealed class ChatApiTests
     }
 
     [Fact]
+    public async Task StreamMessageDoesNotSendPendingAssistantPlaceholderToProvider()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+        CapturingChatModelProvider provider = new();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory, provider);
+        using HttpClient client = factory.CreateClient();
+        ConversationResponse conversation = await CreateConversationAsync(client);
+        SendMessageResponse sendResponse = await SendMessageAsync(client, conversation.Id);
+
+        using HttpResponseMessage streamResponse = await client.PostAsJsonAsync(
+            $"/api/conversations/{conversation.Id}/messages/{sendResponse.AssistantMessageId}/stream",
+            new StreamMessageRequest("fake-chat"));
+        string stream = await streamResponse.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, streamResponse.StatusCode);
+        Assert.Contains("Fake response", stream, StringComparison.Ordinal);
+        Assert.NotNull(provider.LastGenerationRequest);
+        Assert.Single(provider.LastGenerationRequest.Messages);
+        ChatMessage promptMessage = provider.LastGenerationRequest.Messages[0];
+        Assert.Equal(MessageRole.User, promptMessage.Role);
+        Assert.DoesNotContain(
+            provider.LastGenerationRequest.Messages,
+            message => message.Id.Value == sendResponse.AssistantMessageId);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
     public async Task CancelMessageMarksAssistantMessageCancelled()
     {
         string homeDirectory = CreateTemporaryHomeDirectory();
@@ -541,7 +570,7 @@ public sealed class ChatApiTests
             return Task.FromResult(OperationResult.Success());
         }
 
-        public async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
+        public virtual async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
             ProviderGenerationRequest request,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
@@ -551,6 +580,23 @@ public sealed class ChatApiTests
             await Task.Yield();
             yield return new TextGenerationDeltaEvent("Fake response");
             yield return GenerationCompletedEvent.Instance;
+        }
+    }
+
+    private sealed class CapturingChatModelProvider : FakeChatModelProvider
+    {
+        public ProviderGenerationRequest? LastGenerationRequest { get; private set; }
+
+        public override async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
+            ProviderGenerationRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            LastGenerationRequest = request;
+
+            await foreach (ProviderGenerationEvent generationEvent in base.GenerateAsync(request, cancellationToken))
+            {
+                yield return generationEvent;
+            }
         }
     }
 
