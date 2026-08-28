@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
 using Zaphira.Client.Logging;
@@ -31,15 +32,19 @@ public partial class App : Application
     private static async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
         ZaphiraClientConfiguration configuration = await LoadConfigurationAsync();
-        IChatApiClient chatApiClient = await CreateChatApiClientAsync(configuration);
+        HttpClient backendHttpClient = await CreateBackendHttpClientAsync(configuration);
+        IBackendConnectionProbe backendConnectionProbe = new HttpBackendConnectionProbe(backendHttpClient);
+        IChatApiClient chatApiClient = new HttpChatApiClient(backendHttpClient);
+        MainWindowViewModel viewModel = new(configuration, backendConnectionProbe, chatApiClient);
         MainWindow mainWindow = new()
         {
-            DataContext = new MainWindowViewModel(configuration, chatApiClient),
+            DataContext = viewModel,
         };
 
         desktop.MainWindow = mainWindow;
         mainWindow.Show();
         mainWindow.Activate();
+        await viewModel.InitializeAsync(CancellationToken.None);
     }
 
     private static async Task<ZaphiraClientConfiguration> LoadConfigurationAsync()
@@ -54,7 +59,7 @@ public partial class App : Application
         return configuration;
     }
 
-    private static async Task<IChatApiClient> CreateChatApiClientAsync(ZaphiraClientConfiguration configuration)
+    private static async Task<HttpClient> CreateBackendHttpClientAsync(ZaphiraClientConfiguration configuration)
     {
         ZaphiraClientDataDirectories dataDirectories = ZaphiraClientDataDirectories.ForCurrentUser();
         TrustedBackendConnectionStore connectionStore = new(dataDirectories);
@@ -62,9 +67,9 @@ public partial class App : Application
             await connectionStore.LoadAsync(CancellationToken.None);
         BackendCertificateTrust certificateTrust = new(trustedConnections);
 
-        return new HttpChatApiClient(new HttpClient(certificateTrust.CreateHttpClientHandler(configuration.BackendAddress))
+        return new HttpClient(certificateTrust.CreateHttpClientHandler(configuration.BackendAddress))
         {
             BaseAddress = configuration.BackendAddress
-        });
+        };
     }
 }

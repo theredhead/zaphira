@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
 
@@ -7,6 +8,7 @@ namespace Zaphira.Client.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private ClientPage selectedPage;
+    private BackendConnectionState backendConnectionState;
 
     public MainWindowViewModel()
         : this(ZaphiraClientConfiguration.Default())
@@ -16,6 +18,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(ZaphiraClientConfiguration configuration)
         : this(
             configuration,
+            new HttpBackendConnectionProbe(new HttpClient
+            {
+                BaseAddress = configuration.BackendAddress
+            }),
             new HttpChatApiClient(new HttpClient
             {
                 BaseAddress = configuration.BackendAddress
@@ -23,13 +29,18 @@ public partial class MainWindowViewModel : ViewModelBase
     {
     }
 
-    public MainWindowViewModel(ZaphiraClientConfiguration configuration, IChatApiClient chatApiClient)
+    public MainWindowViewModel(
+        ZaphiraClientConfiguration configuration,
+        IBackendConnectionProbe backendConnectionProbe,
+        IChatApiClient chatApiClient)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(backendConnectionProbe);
         ArgumentNullException.ThrowIfNull(chatApiClient);
 
+        BackendConnectionProbe = backendConnectionProbe;
         BackendAddressText = configuration.BackendAddress.ToString();
-        BackendConnectionState = configuration.StartsInFirstRun
+        backendConnectionState = configuration.StartsInFirstRun
             ? BackendConnectionState.SetupRequired
             : BackendConnectionState.Connecting;
         selectedPage = configuration.StartsInFirstRun ? ClientPage.FirstRun : ClientPage.Chat;
@@ -40,9 +51,24 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string BackendAddressText { get; }
 
-    public BackendConnectionState BackendConnectionState { get; private set; }
+    public BackendConnectionState BackendConnectionState
+    {
+        get => backendConnectionState;
+        private set
+        {
+            if (SetProperty(ref backendConnectionState, value))
+            {
+                OnPropertyChanged(nameof(BackendConnectionStateText));
+                OnPropertyChanged(nameof(IsBackendUnavailable));
+            }
+        }
+    }
+
+    public bool IsBackendUnavailable => BackendConnectionState == BackendConnectionState.Unavailable;
 
     public ChatWorkspaceViewModel ChatWorkspace { get; }
+
+    private IBackendConnectionProbe BackendConnectionProbe { get; }
 
     public string BackendConnectionStateText => BackendConnectionState switch
     {
@@ -81,4 +107,31 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void ShowSettings() => SelectedPage = ClientPage.Settings;
+
+    [RelayCommand]
+    public async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        if (BackendConnectionState == BackendConnectionState.SetupRequired)
+        {
+            return;
+        }
+
+        await RefreshBackendConnectionAsync(cancellationToken);
+    }
+
+    [RelayCommand]
+    public async Task RefreshBackendConnectionAsync(CancellationToken cancellationToken)
+    {
+        BackendConnectionState = BackendConnectionState.Connecting;
+
+        BackendConnectionProbeResult result = await BackendConnectionProbe.CheckConnectionAsync(cancellationToken);
+        BackendConnectionState = result == BackendConnectionProbeResult.Connected
+            ? BackendConnectionState.Connected
+            : BackendConnectionState.Unavailable;
+
+        if (BackendConnectionState == BackendConnectionState.Connected)
+        {
+            await ChatWorkspace.LoadAsync(cancellationToken);
+        }
+    }
 }

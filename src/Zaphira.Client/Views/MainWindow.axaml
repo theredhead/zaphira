@@ -46,6 +46,10 @@
                                VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding BackendAddressText}"
                                VerticalAlignment="Center"/>
+                    <Button Content="Retry"
+                            Command="{Binding RefreshBackendConnectionCommand}"
+                            IsVisible="{Binding IsBackendUnavailable}"
+                            TabIndex="4"/>
                 </StackPanel>
             </Grid>
         </Border>

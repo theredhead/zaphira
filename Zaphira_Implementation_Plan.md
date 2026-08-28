@@ -259,13 +259,13 @@
 
 ## 13. First-Run and Availability States
 
-- [ ] Detect backend unavailable.
+- [x] Detect backend unavailable.
 - [ ] Detect no provider/runtime available.
 - [ ] Detect no installed model.
 - [ ] Detect offline with no cached catalog.
 - [ ] Detect catalog unavailable.
 - [ ] Provide clear blocking states.
-- [ ] Provide Retry action.
+- [x] Provide Retry action.
 - [ ] Provide Settings action.
 - [ ] Preserve onboarding state when returning from settings.
 
