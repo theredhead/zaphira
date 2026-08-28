@@ -181,34 +181,6 @@ public partial class BackendPairingWorkspaceViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public async Task CreatePairingCodeAsync(CancellationToken cancellationToken)
-    {
-        if (!TryCreateBackendAddress(out Uri backendAddress))
-        {
-            return;
-        }
-
-        IsBusy = true;
-        try
-        {
-            CreatePairingCodeResponse response = await pairingClientFactory
-                .Create(backendAddress)
-                .CreatePairingCodeAsync(cancellationToken);
-
-            PairingCode = response.Code;
-            StatusText = $"Pairing code {response.Code} expires at {response.ExpiresAt.LocalDateTime}.";
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            StatusText = ToStatusText(exception);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
     public async Task RemoveKnownConnectionAsync(
         KnownBackendConnectionViewModel connection,
         CancellationToken cancellationToken)

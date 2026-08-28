@@ -1,0 +1,63 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Zaphira.Client.ViewModels"
+        x:Class="Zaphira.Client.Views.ModelCatalogWindow"
+        x:DataType="vm:ModelCatalogWorkspaceViewModel"
+        Title="Model Finder"
+        Width="760"
+        Height="640"
+        MinWidth="620"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="16" RowSpacing="12">
+        <Grid ColumnDefinitions="*,180,Auto,Auto" ColumnSpacing="8">
+            <TextBox Text="{Binding SearchText}"
+                     PlaceholderText="Search models"
+                     AutomationProperties.Name="Search models"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding PurposeOptions}"
+                      SelectedItem="{Binding SelectedPurpose}"
+                      AutomationProperties.Name="Purpose"/>
+            <Button Grid.Column="2"
+                    Content="Search"
+                    Command="{Binding SearchCommand}"/>
+            <Button Grid.Column="3"
+                    Content="Sync Now"
+                    Command="{Binding SyncNowCommand}"/>
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   Text="{Binding StatusText}"
+                   TextWrapping="Wrap"/>
+
+        <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Models}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:CatalogModelItemViewModel">
+                        <Border BorderThickness="1"
+                                Padding="12"
+                                Margin="0,0,0,8"
+                                CornerRadius="6">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding Id}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding PurposesText}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CompatibilityText}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding CompatibilityExplanation}"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding MatchExplanation}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</Window>

@@ -30,14 +30,42 @@ public sealed class BackendCertificateTrustTests
         using X509Certificate2 trustedCertificate = TestCertificateFactory.CreateCertificate();
         using X509Certificate2 presentedCertificate = TestCertificateFactory.CreateCertificate();
         TrustedBackendConnection connection = new(
-            new Uri("https://localhost:5051"),
+            new Uri("https://backend.example:5051"),
             trustedCertificate.Thumbprint,
-            "Local backend certificate.");
+            "Remote backend certificate.");
         BackendCertificateTrust trust = new([connection]);
 
         bool isTrusted = trust.Validate(
-            new Uri("https://localhost:5051"),
+            new Uri("https://backend.example:5051"),
             presentedCertificate,
+            SslPolicyErrors.RemoteCertificateChainErrors);
+
+        Assert.False(isTrusted);
+    }
+
+    [Fact]
+    public void ValidateAcceptsLoopbackCertificateChainErrorsWithoutSavedPairing()
+    {
+        using X509Certificate2 certificate = TestCertificateFactory.CreateCertificate();
+        BackendCertificateTrust trust = new([]);
+
+        bool isTrusted = trust.Validate(
+            new Uri("https://localhost:5051"),
+            certificate,
+            SslPolicyErrors.RemoteCertificateChainErrors);
+
+        Assert.True(isTrusted);
+    }
+
+    [Fact]
+    public void ValidateRejectsRemoteCertificateChainErrorsWithoutSavedPairing()
+    {
+        using X509Certificate2 certificate = TestCertificateFactory.CreateCertificate();
+        BackendCertificateTrust trust = new([]);
+
+        bool isTrusted = trust.Validate(
+            new Uri("https://backend.example:5051"),
+            certificate,
             SslPolicyErrors.RemoteCertificateChainErrors);
 
         Assert.False(isTrusted);
@@ -49,13 +77,13 @@ public sealed class BackendCertificateTrustTests
         using X509Certificate2 trustedCertificate = TestCertificateFactory.CreateCertificate();
         using X509Certificate2 presentedCertificate = TestCertificateFactory.CreateCertificate();
         TrustedBackendConnection connection = new(
-            new Uri("https://localhost:5051"),
+            new Uri("https://backend.example:5051"),
             trustedCertificate.Thumbprint,
-            "Local backend certificate.");
+            "Remote backend certificate.");
         BackendCertificateTrust trust = new([connection]);
 
         CertificateTrustDiagnostic diagnostic = trust.Diagnose(
-            new Uri("https://localhost:5051"),
+            new Uri("https://backend.example:5051"),
             presentedCertificate,
             SslPolicyErrors.RemoteCertificateChainErrors);
 

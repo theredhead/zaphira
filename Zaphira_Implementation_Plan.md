@@ -291,6 +291,7 @@
 - [x] Distinguish directly usable, possibly usable, unsupported, and unknown models.
 - [x] Explain why a model matched where practical.
 - [x] Preserve cached catalog access offline.
+- [x] Present model discovery in its own window.
 
 **Done when:**
 
@@ -348,6 +349,7 @@
 - [x] View known pairings.
 - [x] Remove/revoke pairings.
 - [x] Surface connection and trust errors clearly.
+- [x] Keep frontend manual pairing code entry oriented around backend-generated codes.
 
 **Done when:**
 

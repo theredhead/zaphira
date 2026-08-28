@@ -19,4 +19,19 @@ public partial class MainWindow : Window
             await viewModel.ChatWorkspace.LoadAsync(CancellationToken.None);
         }
     }
+
+    private void OpenModelCatalogWindow(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        ModelCatalogWindow modelCatalogWindow = new()
+        {
+            DataContext = viewModel.ModelCatalogWorkspace
+        };
+
+        modelCatalogWindow.Show(this);
+    }
 }

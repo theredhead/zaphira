@@ -6,8 +6,6 @@ public interface IRemoteBackendPairingClient
 {
     Task<bool> CheckBackendAsync(CancellationToken cancellationToken);
 
-    Task<CreatePairingCodeResponse> CreatePairingCodeAsync(CancellationToken cancellationToken);
-
     Task<CreatePairingResponse> PairAsync(
         string pairingCode,
         string clientName,

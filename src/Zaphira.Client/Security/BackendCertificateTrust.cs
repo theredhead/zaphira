@@ -30,6 +30,12 @@ public sealed class BackendCertificateTrust
             return true;
         }
 
+        if (IsLoopbackAddress(backendAddress)
+            && policyErrors == SslPolicyErrors.RemoteCertificateChainErrors)
+        {
+            return true;
+        }
+
         string presentedThumbprint = TrustedBackendConnection.NormalizeThumbprint(certificate.Thumbprint);
 
         return trustedConnections.Any(connection =>
@@ -74,4 +80,8 @@ public sealed class BackendCertificateTrust
             }
         };
     }
+
+    private static bool IsLoopbackAddress(Uri backendAddress) =>
+        backendAddress.IsLoopback
+        || string.Equals(backendAddress.Host, "localhost", StringComparison.OrdinalIgnoreCase);
 }

@@ -52,21 +52,6 @@ public sealed class BackendPairingWorkspaceViewModelTests
     }
 
     [Fact]
-    public async Task CreatePairingCodeStoresCodeInInput()
-    {
-        TestContext context = CreateContext();
-        BackendPairingWorkspaceViewModel viewModel = context.CreateViewModel();
-        viewModel.RemoteBackendAddressText = "https://backend.example";
-
-        await viewModel.CreatePairingCodeAsync(CancellationToken.None);
-
-        Assert.Equal("1234", viewModel.PairingCode);
-        Assert.Contains("Pairing code 1234", viewModel.StatusText, StringComparison.Ordinal);
-
-        context.DeleteHomeDirectory();
-    }
-
-    [Fact]
     public async Task RemoveKnownConnectionRevokesAndDeletesLocalConnection()
     {
         TestContext context = CreateContext();
@@ -164,13 +149,6 @@ public sealed class BackendPairingWorkspaceViewModelTests
             CheckBackendCallCount++;
 
             return Task.FromResult(true);
-        }
-
-        public Task<CreatePairingCodeResponse> CreatePairingCodeAsync(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return Task.FromResult(new CreatePairingCodeResponse("1234", DateTimeOffset.UtcNow.AddMinutes(10)));
         }
 
         public Task<CreatePairingResponse> PairAsync(

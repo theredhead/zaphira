@@ -33,21 +33,6 @@ public sealed class HttpRemoteBackendPairingClient : IRemoteBackendPairingClient
         }
     }
 
-    public async Task<CreatePairingCodeResponse> CreatePairingCodeAsync(CancellationToken cancellationToken)
-    {
-        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-            "/api/pairing-code",
-            new { },
-            SerializerOptions,
-            cancellationToken);
-        await ThrowIfErrorAsync(response, cancellationToken);
-
-        CreatePairingCodeResponse? pairingCode =
-            await response.Content.ReadFromJsonAsync<CreatePairingCodeResponse>(SerializerOptions, cancellationToken);
-
-        return pairingCode ?? throw new InvalidOperationException("Pairing code response was missing.");
-    }
-
     public async Task<CreatePairingResponse> PairAsync(
         string pairingCode,
         string clientName,

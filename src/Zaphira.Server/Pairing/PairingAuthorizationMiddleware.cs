@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using Zaphira.Contracts;
 
@@ -20,6 +21,7 @@ internal sealed class PairingAuthorizationMiddleware
         ArgumentNullException.ThrowIfNull(pairingRegistry);
 
         if (IsPairingBootstrapRequest(context)
+            || IsLoopbackRequest(context)
             || !await pairingRegistry.HasPairingsAsync(context.RequestAborted))
         {
             await next(context);
@@ -36,6 +38,13 @@ internal sealed class PairingAuthorizationMiddleware
 
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         await context.Response.WriteAsJsonAsync(ErrorResponse.PairingRequired(), context.RequestAborted);
+    }
+
+    private static bool IsLoopbackRequest(HttpContext context)
+    {
+        IPAddress? remoteIpAddress = context.Connection.RemoteIpAddress;
+
+        return remoteIpAddress is not null && IPAddress.IsLoopback(remoteIpAddress);
     }
 
     private static bool IsPairingBootstrapRequest(HttpContext context)

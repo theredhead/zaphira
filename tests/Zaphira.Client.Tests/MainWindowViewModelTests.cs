@@ -234,13 +234,6 @@ public sealed class MainWindowViewModelTests
             return Task.FromResult(true);
         }
 
-        public Task<CreatePairingCodeResponse> CreatePairingCodeAsync(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return Task.FromResult(new CreatePairingCodeResponse("1234", DateTimeOffset.UtcNow.AddMinutes(10)));
-        }
-
         public Task<CreatePairingResponse> PairAsync(
             string pairingCode,
             string clientName,
