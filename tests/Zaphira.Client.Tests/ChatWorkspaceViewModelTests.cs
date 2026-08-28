@@ -169,6 +169,46 @@ public sealed class ChatWorkspaceViewModelTests
         Assert.False(viewModel.RenderedParts[2].IsCodeBlock);
     }
 
+    [Fact]
+    public void MessageViewModelRendersMarkdownBlocks()
+    {
+        ChatMessageViewModel viewModel = ChatMessageViewModel.FromResponse(
+            new ChatMessageResponse(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                "Assistant",
+                "Completed",
+                [
+                    new MessagePartResponse(
+                        "text",
+                        "# Heading\n\nA paragraph that wraps\nacross lines.\n\n- First\n* Second\n\n> Useful quote")
+                ],
+                DateTimeOffset.UtcNow));
+
+        Assert.Equal(5, viewModel.RenderedParts.Count);
+        Assert.True(viewModel.RenderedParts[0].IsHeadingOne);
+        Assert.Equal("Heading", viewModel.RenderedParts[0].Text);
+        Assert.True(viewModel.RenderedParts[1].IsParagraph);
+        Assert.Equal("A paragraph that wraps across lines.", viewModel.RenderedParts[1].Text);
+        Assert.True(viewModel.RenderedParts[2].IsListItem);
+        Assert.Equal("First", viewModel.RenderedParts[2].Text);
+        Assert.True(viewModel.RenderedParts[3].IsListItem);
+        Assert.Equal("Second", viewModel.RenderedParts[3].Text);
+        Assert.True(viewModel.RenderedParts[4].IsQuote);
+        Assert.Equal("Useful quote", viewModel.RenderedParts[4].Text);
+    }
+
+    [Fact]
+    public void PendingAssistantHasNonNullEmptyParagraph()
+    {
+        ChatMessageViewModel viewModel = ChatMessageViewModel.PendingAssistant(Guid.NewGuid());
+
+        Assert.Single(viewModel.RenderedParts);
+        Assert.True(viewModel.RenderedParts[0].IsParagraph);
+        Assert.Equal(string.Empty, viewModel.RenderedParts[0].Text);
+        Assert.Equal(string.Empty, viewModel.RenderedParts[0].Language);
+    }
+
     private sealed class FakeChatApiClient : IChatApiClient
     {
         private readonly IReadOnlyList<ConversationResponse> conversations;

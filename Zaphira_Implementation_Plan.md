@@ -245,7 +245,7 @@
 - [x] Build streaming assistant message view.
 - [x] Build stop control.
 - [x] Build message status/error presentation.
-- [ ] Build Markdown rendering.
+- [x] Build Markdown rendering.
 - [ ] Build syntax-highlighted code rendering.
 - [x] Build fallback rendering for unknown message parts.
 - [ ] Add keyboard and accessibility basics.

@@ -112,14 +112,14 @@ public sealed class ChatMessageViewModel : ViewModelBase
 
         foreach (string part in textParts)
         {
-            foreach (RenderedMessagePartViewModel renderedPart in SplitMarkdownCodeBlocks(part))
+            foreach (RenderedMessagePartViewModel renderedPart in ParseMarkdownBlocks(part))
             {
                 RenderedParts.Add(renderedPart);
             }
         }
     }
 
-    private static IReadOnlyList<RenderedMessagePartViewModel> SplitMarkdownCodeBlocks(string text)
+    private static IReadOnlyList<RenderedMessagePartViewModel> ParseMarkdownBlocks(string text)
     {
         List<RenderedMessagePartViewModel> renderedParts = [];
         int cursor = 0;
@@ -129,16 +129,16 @@ public sealed class ChatMessageViewModel : ViewModelBase
             int fenceStart = text.IndexOf("```", cursor, StringComparison.Ordinal);
             if (fenceStart < 0)
             {
-                AddTextPart(renderedParts, text[cursor..]);
+                AddMarkdownTextBlocks(renderedParts, text[cursor..]);
                 break;
             }
 
-            AddTextPart(renderedParts, text[cursor..fenceStart]);
+            AddMarkdownTextBlocks(renderedParts, text[cursor..fenceStart]);
             int languageStart = fenceStart + 3;
             int firstLineEnd = text.IndexOf('\n', languageStart);
             if (firstLineEnd < 0)
             {
-                AddTextPart(renderedParts, text[fenceStart..]);
+                AddMarkdownTextBlocks(renderedParts, text[fenceStart..]);
                 break;
             }
 
@@ -147,30 +147,140 @@ public sealed class ChatMessageViewModel : ViewModelBase
             int fenceEnd = text.IndexOf("```", codeStart, StringComparison.Ordinal);
             if (fenceEnd < 0)
             {
-                AddTextPart(renderedParts, text[fenceStart..]);
+                AddMarkdownTextBlocks(renderedParts, text[fenceStart..]);
                 break;
             }
 
             string code = text[codeStart..fenceEnd].TrimEnd();
-            renderedParts.Add(new RenderedMessagePartViewModel(code, isCodeBlock: true, language));
+            renderedParts.Add(RenderedMessagePartViewModel.CodeBlock(code, language));
             cursor = fenceEnd + 3;
         }
 
         if (renderedParts.Count == 0)
         {
-            renderedParts.Add(new RenderedMessagePartViewModel(string.Empty, isCodeBlock: false, string.Empty));
+            renderedParts.Add(RenderedMessagePartViewModel.Paragraph(string.Empty));
         }
 
         return renderedParts;
     }
 
-    private static void AddTextPart(List<RenderedMessagePartViewModel> renderedParts, string text)
+    private static void AddMarkdownTextBlocks(List<RenderedMessagePartViewModel> renderedParts, string text)
     {
         if (string.IsNullOrEmpty(text))
         {
             return;
         }
 
-        renderedParts.Add(new RenderedMessagePartViewModel(text.Trim(), isCodeBlock: false, string.Empty));
+        List<string> paragraphLines = [];
+        string normalizedText = text.ReplaceLineEndings("\n");
+        foreach (string line in normalizedText.Split('\n'))
+        {
+            string trimmedLine = line.Trim();
+            if (string.IsNullOrEmpty(trimmedLine))
+            {
+                FlushParagraph(renderedParts, paragraphLines);
+                continue;
+            }
+
+            if (TryParseHeading(trimmedLine, out int headingLevel, out string headingText))
+            {
+                FlushParagraph(renderedParts, paragraphLines);
+                renderedParts.Add(RenderedMessagePartViewModel.Heading(headingText, headingLevel));
+                continue;
+            }
+
+            if (TryParseListItem(trimmedLine, out string listItemText))
+            {
+                FlushParagraph(renderedParts, paragraphLines);
+                renderedParts.Add(RenderedMessagePartViewModel.ListItem(listItemText));
+                continue;
+            }
+
+            if (TryParseQuote(trimmedLine, out string quoteText))
+            {
+                FlushParagraph(renderedParts, paragraphLines);
+                renderedParts.Add(RenderedMessagePartViewModel.Quote(quoteText));
+                continue;
+            }
+
+            paragraphLines.Add(trimmedLine);
+        }
+
+        FlushParagraph(renderedParts, paragraphLines);
+    }
+
+    private static void FlushParagraph(
+        List<RenderedMessagePartViewModel> renderedParts,
+        List<string> paragraphLines)
+    {
+        if (paragraphLines.Count == 0)
+        {
+            return;
+        }
+
+        renderedParts.Add(RenderedMessagePartViewModel.Paragraph(string.Join(" ", paragraphLines)));
+        paragraphLines.Clear();
+    }
+
+    private static bool TryParseHeading(string line, out int headingLevel, out string headingText)
+    {
+        headingLevel = 0;
+        headingText = string.Empty;
+
+        int cursor = 0;
+        while (cursor < line.Length && line[cursor] == '#')
+        {
+            cursor++;
+        }
+
+        if (cursor is < 1 or > 6 || cursor >= line.Length || line[cursor] != ' ')
+        {
+            return false;
+        }
+
+        string parsedText = line[(cursor + 1)..].Trim();
+        if (string.IsNullOrEmpty(parsedText))
+        {
+            return false;
+        }
+
+        headingLevel = cursor;
+        headingText = parsedText;
+
+        return true;
+    }
+
+    private static bool TryParseListItem(string line, out string listItemText)
+    {
+        listItemText = string.Empty;
+
+        if (line.Length < 3 || line[1] != ' ')
+        {
+            return false;
+        }
+
+        char marker = line[0];
+        if (marker is not ('-' or '*' or '+'))
+        {
+            return false;
+        }
+
+        listItemText = line[2..].Trim();
+
+        return !string.IsNullOrEmpty(listItemText);
+    }
+
+    private static bool TryParseQuote(string line, out string quoteText)
+    {
+        quoteText = string.Empty;
+
+        if (!line.StartsWith('>'))
+        {
+            return false;
+        }
+
+        quoteText = line[1..].Trim();
+
+        return !string.IsNullOrEmpty(quoteText);
     }
 }
