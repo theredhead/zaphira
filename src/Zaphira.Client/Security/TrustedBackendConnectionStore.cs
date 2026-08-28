@@ -70,17 +70,46 @@ public sealed class TrustedBackendConnectionStore
         await JsonSerializer.SerializeAsync(stream, items, SerializerOptions, cancellationToken);
     }
 
+    public async Task RemoveAsync(Uri backendAddress, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(backendAddress);
+
+        List<TrustedBackendConnection> connections = [.. await LoadAsync(cancellationToken)];
+        connections.RemoveAll(connection =>
+            Uri.Compare(
+                connection.BackendAddress,
+                backendAddress,
+                UriComponents.HttpRequestUrl,
+                UriFormat.SafeUnescaped,
+                StringComparison.OrdinalIgnoreCase) == 0);
+
+        TrustedBackendConnectionFileItem[] items = connections
+            .Select(TrustedBackendConnectionFileItem.FromConnection)
+            .ToArray();
+        await using FileStream stream = File.Create(dataDirectories.ConnectionsFile);
+
+        await JsonSerializer.SerializeAsync(stream, items, SerializerOptions, cancellationToken);
+    }
+
     private sealed record TrustedBackendConnectionFileItem
     {
-        public TrustedBackendConnectionFileItem(string backendAddress, string certificateThumbprint, string description)
+        public TrustedBackendConnectionFileItem(
+            string backendAddress,
+            string certificateThumbprint,
+            string description,
+            Guid pairingId,
+            string accessToken)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(backendAddress);
             ArgumentException.ThrowIfNullOrWhiteSpace(certificateThumbprint);
             ArgumentException.ThrowIfNullOrWhiteSpace(description);
+            ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
             BackendAddress = backendAddress;
             CertificateThumbprint = certificateThumbprint;
             Description = description;
+            PairingId = pairingId;
+            AccessToken = accessToken;
         }
 
         public string BackendAddress { get; }
@@ -89,6 +118,10 @@ public sealed class TrustedBackendConnectionStore
 
         public string Description { get; }
 
+        public Guid PairingId { get; }
+
+        public string AccessToken { get; }
+
         public static TrustedBackendConnectionFileItem FromConnection(TrustedBackendConnection connection)
         {
             ArgumentNullException.ThrowIfNull(connection);
@@ -96,10 +129,12 @@ public sealed class TrustedBackendConnectionStore
             return new TrustedBackendConnectionFileItem(
                 connection.BackendAddress.ToString(),
                 connection.CertificateThumbprint,
-                connection.Description);
+                connection.Description,
+                connection.PairingId,
+                connection.AccessToken);
         }
 
         public TrustedBackendConnection ToConnection() =>
-            new(new Uri(BackendAddress), CertificateThumbprint, Description);
+            new(new Uri(BackendAddress), CertificateThumbprint, Description, PairingId, AccessToken);
     }
 }

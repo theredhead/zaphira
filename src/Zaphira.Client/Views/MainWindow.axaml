@@ -180,6 +180,63 @@
             <ScrollViewer Grid.Row="1"
                           IsVisible="{Binding IsSettingsPageSelected}">
                 <StackPanel Spacing="12">
+                    <TextBlock Text="Remote backend"
+                               FontSize="18"
+                               FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox Text="{Binding BackendPairingWorkspace.RemoteBackendAddressText}"
+                                 PlaceholderText="Backend address"
+                                 AutomationProperties.Name="Backend address"/>
+                        <Button Grid.Column="1"
+                                Content="Check"
+                                Command="{Binding BackendPairingWorkspace.CheckRemoteBackendCommand}"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8">
+                        <TextBox Text="{Binding BackendPairingWorkspace.PairingCode}"
+                                 PlaceholderText="Pairing code"
+                                 AutomationProperties.Name="Pairing code"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding BackendPairingWorkspace.ClientName}"
+                                 PlaceholderText="Client name"
+                                 AutomationProperties.Name="Client name"/>
+                        <Button Grid.Column="2"
+                                Content="Pair"
+                                Command="{Binding BackendPairingWorkspace.PairRemoteBackendCommand}"/>
+                    </Grid>
+                    <Button Content="Create Pairing Code"
+                            Command="{Binding BackendPairingWorkspace.CreatePairingCodeCommand}"
+                            HorizontalAlignment="Left"/>
+                    <TextBlock Text="{Binding BackendPairingWorkspace.StatusText}"
+                               TextWrapping="Wrap"/>
+                    <ItemsControl ItemsSource="{Binding BackendPairingWorkspace.KnownConnections}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:KnownBackendConnectionViewModel">
+                                <Border BorderThickness="1"
+                                        Padding="12"
+                                        Margin="0,0,0,8"
+                                        CornerRadius="6">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding BackendAddress}"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Description}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding CertificateThumbprint}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="Remove"
+                                                Command="{Binding DataContext.BackendPairingWorkspace.RemoveKnownConnectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                x:CompileBindings="False"
+                                                VerticalAlignment="Top"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Separator/>
                     <TextBlock Text="Installed models"
                                FontSize="18"
                                FontWeight="SemiBold"/>

@@ -3,6 +3,9 @@ using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.ModelCatalog;
 using Zaphira.Client.Configuration;
+using Zaphira.Client.Pairing;
+using Zaphira.Client.Security;
+using Zaphira.Client.Storage;
 using Zaphira.Client.ViewModels;
 using Zaphira.Contracts;
 
@@ -52,7 +55,8 @@ public sealed class MainWindowViewModelTests
             new EmptyChatApiClient(
                 conversations: [],
                 models: [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])]),
-            new EmptyModelCatalogApiClient());
+            new EmptyModelCatalogApiClient(),
+            CreateBackendPairingWorkspace());
 
         viewModel.ShowSettingsCommand.Execute(null);
         Assert.True(viewModel.IsSettingsPageSelected);
@@ -71,7 +75,8 @@ public sealed class MainWindowViewModelTests
             ZaphiraClientConfiguration.Default(),
             probe,
             new EmptyChatApiClient(),
-            new EmptyModelCatalogApiClient());
+            new EmptyModelCatalogApiClient(),
+            CreateBackendPairingWorkspace());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -86,7 +91,8 @@ public sealed class MainWindowViewModelTests
             new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
             new FakeBackendConnectionProbe(BackendConnectionProbeResult.Unavailable),
             new EmptyChatApiClient(),
-            new EmptyModelCatalogApiClient());
+            new EmptyModelCatalogApiClient(),
+            CreateBackendPairingWorkspace());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -120,7 +126,8 @@ public sealed class MainWindowViewModelTests
                 [
                     new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])
                 ]),
-            new EmptyModelCatalogApiClient());
+            new EmptyModelCatalogApiClient(),
+            CreateBackendPairingWorkspace());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -141,7 +148,8 @@ public sealed class MainWindowViewModelTests
                 modelListFailure: new ChatApiException(
                     503,
                     ErrorResponse.ProviderUnavailable())),
-            new EmptyModelCatalogApiClient());
+            new EmptyModelCatalogApiClient(),
+            CreateBackendPairingWorkspace());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -160,7 +168,8 @@ public sealed class MainWindowViewModelTests
             new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
             new FakeBackendConnectionProbe(BackendConnectionProbeResult.Connected),
             new EmptyChatApiClient(),
-            new EmptyModelCatalogApiClient());
+            new EmptyModelCatalogApiClient(),
+            CreateBackendPairingWorkspace());
 
         await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -189,6 +198,66 @@ public sealed class MainWindowViewModelTests
             CheckConnectionCallCount++;
 
             return Task.FromResult(result);
+        }
+    }
+
+    private static BackendPairingWorkspaceViewModel CreateBackendPairingWorkspace()
+    {
+        string homeDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        ZaphiraClientDataDirectories dataDirectories = ZaphiraClientDataDirectories.ForHomeDirectory(homeDirectory);
+
+        return new BackendPairingWorkspaceViewModel(
+            new ZaphiraClientConfiguration(new Uri("https://localhost:5051"), startsInFirstRun: false),
+            new ZaphiraClientConfigurationLoader(dataDirectories),
+            new TrustedBackendConnectionStore(dataDirectories),
+            new FakeRemoteBackendPairingClientFactory());
+    }
+
+    private sealed class FakeRemoteBackendPairingClientFactory : IRemoteBackendPairingClientFactory
+    {
+        public IRemoteBackendPairingClient Create(Uri backendAddress)
+        {
+            ArgumentNullException.ThrowIfNull(backendAddress);
+
+            return new FakeRemoteBackendPairingClient();
+        }
+    }
+
+    private sealed class FakeRemoteBackendPairingClient : IRemoteBackendPairingClient
+    {
+        public Task<bool> CheckBackendAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(true);
+        }
+
+        public Task<CreatePairingCodeResponse> CreatePairingCodeAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new CreatePairingCodeResponse("1234", DateTimeOffset.UtcNow.AddMinutes(10)));
+        }
+
+        public Task<CreatePairingResponse> PairAsync(
+            string pairingCode,
+            string clientName,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new CreatePairingResponse(
+                Guid.NewGuid(),
+                "token",
+                "thumbprint",
+                "Fake backend"));
+        }
+
+        public Task RevokePairingAsync(Guid pairingId, string accessToken, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.CompletedTask;
         }
     }
 

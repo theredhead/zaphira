@@ -13,6 +13,7 @@ using Zaphira.Infrastructure.Storage;
 using Zaphira.Server.Chat;
 using Zaphira.Server.Configuration;
 using Zaphira.Server.ModelCatalog;
+using Zaphira.Server.Pairing;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,11 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<ZaphiraDataDirectories>(serviceProvider =>
     ZaphiraServerConfiguration.LoadDataDirectories(serviceProvider.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<ServerHttpsCertificateManager>();
+builder.Services.AddSingleton(serviceProvider => serviceProvider
+    .GetRequiredService<ServerHttpsCertificateManager>()
+    .LoadOrCreateAsync(serviceProvider.GetRequiredService<ZaphiraDataDirectories>(), CancellationToken.None)
+    .GetAwaiter()
+    .GetResult());
 builder.Services.AddSingleton<SqliteDatabaseMigrator>();
 builder.Services.AddSingleton<IConversationRepository>(serviceProvider =>
     new SqliteConversationRepository(serviceProvider.GetRequiredService<ZaphiraDataDirectories>().ServerDatabaseFile));
@@ -56,6 +62,9 @@ builder.Services.AddSingleton<CatalogSearchService>();
 builder.Services.AddSingleton<CatalogCompatibilityEstimator>();
 builder.Services.AddSingleton<IHardwareProfileDetector>(
     new RuntimeHardwareProfileDetector(memoryHeadroomBytes: 2L * 1024L * 1024L * 1024L));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ServerPairingStore>();
+builder.Services.AddSingleton<ServerPairingRegistry>();
 
 builder.WebHost.ConfigureKestrel((context, options) =>
 {
@@ -66,11 +75,22 @@ builder.WebHost.ConfigureKestrel((context, options) =>
         .GetAwaiter()
         .GetResult();
     int httpsPort = ZaphiraServerConfiguration.LoadHttpsPort(context.Configuration);
+    ZaphiraHttpsBindMode bindMode = ZaphiraServerConfiguration.LoadHttpsBindMode(context.Configuration);
 
-    options.ListenLocalhost(httpsPort, listenOptions =>
+    if (bindMode == ZaphiraHttpsBindMode.AnyIp)
     {
-        listenOptions.UseHttps(certificateMaterial.Certificate);
-    });
+        options.ListenAnyIP(httpsPort, listenOptions =>
+        {
+            listenOptions.UseHttps(certificateMaterial.Certificate);
+        });
+    }
+    else
+    {
+        options.ListenLocalhost(httpsPort, listenOptions =>
+        {
+            listenOptions.UseHttps(certificateMaterial.Certificate);
+        });
+    }
 });
 
 WebApplication app = builder.Build();
@@ -118,12 +138,14 @@ app.UseExceptionHandler(errorApplication =>
 });
 
 app.UseHttpsRedirection();
+app.UseMiddleware<PairingAuthorizationMiddleware>();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("Zaphira.Server", "Healthy")))
     .WithName("GetHealth");
 
 app.MapChatApi();
 app.MapModelCatalogApi();
+app.MapPairingApi();
 
 app.MapFallback(() => Results.NotFound(ErrorResponse.RouteNotFound()));
 

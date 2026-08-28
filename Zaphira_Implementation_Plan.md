@@ -336,22 +336,22 @@
 
 ## 17. Remote Backend and Pairing
 
-- [ ] Add remote backend address setting.
-- [ ] Check whether a remote Zaphira backend is reachable.
-- [ ] Implement human-mediated pairing flow.
-- [ ] Generate/display pairing code on backend.
-- [ ] Accept pairing code in client.
-- [ ] Issue and store pairing credentials.
-- [ ] Bind pairing to backend identity/certificate.
-- [ ] Persist connection information.
-- [ ] View known pairings.
-- [ ] Remove/revoke pairings.
-- [ ] Surface connection and trust errors clearly.
+- [x] Add remote backend address setting.
+- [x] Check whether a remote Zaphira backend is reachable.
+- [x] Implement human-mediated pairing flow.
+- [x] Generate/display pairing code on backend.
+- [x] Accept pairing code in client.
+- [x] Issue and store pairing credentials.
+- [x] Bind pairing to backend identity/certificate.
+- [x] Persist connection information.
+- [x] View known pairings.
+- [x] Remove/revoke pairings.
+- [x] Surface connection and trust errors clearly.
 
 **Done when:**
 
-- [ ] A user can intentionally pair with a trusted backend over HTTPS.
-- [ ] Revoked pairings are not silently reused.
+- [x] A user can intentionally pair with a trusted backend over HTTPS.
+- [x] Revoked pairings are not silently reused.
 
 ---
 

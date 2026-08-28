@@ -43,6 +43,15 @@ public sealed record ErrorResponse
     public static ErrorResponse CatalogUnavailable() =>
         new("catalog_unavailable", "The model catalog is unavailable.", "Go online and try syncing the catalog again.");
 
+    public static ErrorResponse PairingCodeInvalid() =>
+        new("pairing_code_invalid", "The pairing code is invalid or expired.", "Generate a new pairing code on the backend and try again.");
+
+    public static ErrorResponse PairingNotFound() =>
+        new("pairing_not_found", "The pairing was not found.", "Refresh pairings and try again.");
+
+    public static ErrorResponse PairingRequired() =>
+        new("pairing_required", "This backend requires a valid pairing.", "Pair this client with the backend and try again.");
+
     public static ErrorResponse UnexpectedServerError() =>
         new("unexpected_server_error", "The server hit an unexpected error.", "Try again.");
 }

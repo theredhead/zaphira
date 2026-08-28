@@ -43,8 +43,12 @@ public sealed class ZaphiraClientConfigurationLoader
         return configurationFile.ToConfiguration();
     }
 
-    private async Task SaveAsync(ZaphiraClientConfiguration configuration, CancellationToken cancellationToken)
+    public async Task SaveAsync(ZaphiraClientConfiguration configuration, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        await dataDirectories.EnsureClientDirectoriesExistAsync(cancellationToken);
+
         ClientConfigurationFile configurationFile = ClientConfigurationFile.FromConfiguration(configuration);
         await using FileStream stream = File.Create(dataDirectories.SettingsFile);
 

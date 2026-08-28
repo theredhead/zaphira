@@ -3,6 +3,9 @@ using Zaphira.Client.Backend;
 using Zaphira.Client.Chat;
 using Zaphira.Client.Configuration;
 using Zaphira.Client.ModelCatalog;
+using Zaphira.Client.Pairing;
+using Zaphira.Client.Security;
+using Zaphira.Client.Storage;
 using Zaphira.Contracts;
 
 namespace Zaphira.Client.ViewModels;
@@ -32,7 +35,12 @@ public partial class MainWindowViewModel : ViewModelBase
             new HttpModelCatalogApiClient(new HttpClient
             {
                 BaseAddress = configuration.BackendAddress
-            }))
+            }),
+            new BackendPairingWorkspaceViewModel(
+                configuration,
+                new ZaphiraClientConfigurationLoader(ZaphiraClientDataDirectories.ForCurrentUser()),
+                new TrustedBackendConnectionStore(ZaphiraClientDataDirectories.ForCurrentUser()),
+                new HttpRemoteBackendPairingClientFactory()))
     {
     }
 
@@ -40,12 +48,14 @@ public partial class MainWindowViewModel : ViewModelBase
         ZaphiraClientConfiguration configuration,
         IBackendConnectionProbe backendConnectionProbe,
         IChatApiClient chatApiClient,
-        IModelCatalogApiClient modelCatalogApiClient)
+        IModelCatalogApiClient modelCatalogApiClient,
+        BackendPairingWorkspaceViewModel backendPairingWorkspace)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(backendConnectionProbe);
         ArgumentNullException.ThrowIfNull(chatApiClient);
         ArgumentNullException.ThrowIfNull(modelCatalogApiClient);
+        ArgumentNullException.ThrowIfNull(backendPairingWorkspace);
 
         BackendConnectionProbe = backendConnectionProbe;
         BackendAddressText = configuration.BackendAddress.ToString();
@@ -56,6 +66,7 @@ public partial class MainWindowViewModel : ViewModelBase
         pageBeforeSettings = selectedPage;
         ChatWorkspace = new ChatWorkspaceViewModel(chatApiClient);
         ModelCatalogWorkspace = new ModelCatalogWorkspaceViewModel(modelCatalogApiClient);
+        BackendPairingWorkspace = backendPairingWorkspace;
     }
 
     public string ApplicationTitle { get; } = "Zaphira";
@@ -86,6 +97,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public ChatWorkspaceViewModel ChatWorkspace { get; }
 
     public ModelCatalogWorkspaceViewModel ModelCatalogWorkspace { get; }
+
+    public BackendPairingWorkspaceViewModel BackendPairingWorkspace { get; }
 
     private IBackendConnectionProbe BackendConnectionProbe { get; }
 
@@ -167,6 +180,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         await RefreshBackendConnectionAsync(cancellationToken);
+        await BackendPairingWorkspace.LoadKnownConnectionsAsync(cancellationToken);
     }
 
     [RelayCommand]
