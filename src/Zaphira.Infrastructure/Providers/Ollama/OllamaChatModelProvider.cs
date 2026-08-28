@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using Zaphira.Application;
 using Zaphira.Application.Providers;
 using Zaphira.Domain;
 
@@ -135,6 +136,70 @@ public sealed class OllamaChatModelProvider : IChatModelProvider
         }
     }
 
+    public async IAsyncEnumerable<ProviderModelInstallationEvent> InstallModelAsync(
+        ModelId modelId,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(modelId);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using HttpResponseMessage response = await httpClient.SendAsync(
+            CreatePullRequest(modelId),
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            yield return new ProviderModelInstallationFailedEvent(new ProviderError(
+                "Ollama.InstallationFailed",
+                "Ollama could not install the model.",
+                "Check disk space, network access, and that Ollama is running, then try again."));
+            yield break;
+        }
+
+        await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using StreamReader reader = new(stream, Encoding.UTF8);
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            ProviderModelInstallationEvent installationEvent = ParseInstallationEvent(modelId, line);
+            yield return installationEvent;
+
+            if (installationEvent is ProviderModelInstallationCompletedEvent
+                or ProviderModelInstallationFailedEvent)
+            {
+                yield break;
+            }
+        }
+    }
+
+    public async Task<OperationResult> RemoveModelAsync(ModelId modelId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(modelId);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using HttpRequestMessage request = new(HttpMethod.Delete, "/api/delete")
+        {
+            Content = JsonContent.Create(new { model = modelId.Value }, options: SerializerOptions)
+        };
+
+        using HttpResponseMessage response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return OperationResult.Success();
+        }
+
+        return OperationResult.Failure(new ApplicationError(
+            "Ollama.RemoveModelFailed",
+            "Ollama could not remove the model."));
+    }
+
     private async Task<ProviderCapabilities> InspectModelCapabilitiesAsync(
         string modelName,
         CancellationToken cancellationToken)
@@ -195,6 +260,20 @@ public sealed class OllamaChatModelProvider : IChatModelProvider
         };
     }
 
+    private static HttpRequestMessage CreatePullRequest(ModelId modelId)
+    {
+        object body = new
+        {
+            model = modelId.Value,
+            stream = true
+        };
+
+        return new HttpRequestMessage(HttpMethod.Post, "/api/pull")
+        {
+            Content = JsonContent.Create(body, options: SerializerOptions)
+        };
+    }
+
     private static string GetMessageTextContent(ChatMessage message)
     {
         string content = string.Join(
@@ -236,5 +315,44 @@ public sealed class OllamaChatModelProvider : IChatModelProvider
         return done
             ? GenerationCompletedEvent.Instance
             : new TextGenerationDeltaEvent(" ");
+    }
+
+    private static ProviderModelInstallationEvent ParseInstallationEvent(ModelId modelId, string line)
+    {
+        using JsonDocument document = JsonDocument.Parse(line);
+        JsonElement root = document.RootElement;
+
+        if (root.TryGetProperty("error", out JsonElement errorElement))
+        {
+            string error = errorElement.GetString() ?? "Unknown Ollama error.";
+
+            return new ProviderModelInstallationFailedEvent(new ProviderError(
+                "Ollama.InstallationFailed",
+                "Ollama could not install the model.",
+                error));
+        }
+
+        string status = root.TryGetProperty("status", out JsonElement statusElement)
+            ? statusElement.GetString() ?? "Working"
+            : "Working";
+        long completedBytes = root.TryGetProperty("completed", out JsonElement completedElement)
+            ? completedElement.GetInt64()
+            : 0;
+        long totalBytes = root.TryGetProperty("total", out JsonElement totalElement)
+            ? totalElement.GetInt64()
+            : 0;
+        bool hasKnownTotalBytes = totalBytes > 0;
+
+        if (status.Contains("success", StringComparison.OrdinalIgnoreCase))
+        {
+            return ProviderModelInstallationCompletedEvent.Instance;
+        }
+
+        return new ProviderModelInstallationProgressEvent(
+            modelId,
+            status,
+            completedBytes,
+            totalBytes,
+            hasKnownTotalBytes);
     }
 }

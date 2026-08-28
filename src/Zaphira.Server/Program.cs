@@ -39,6 +39,7 @@ builder.Services.AddSingleton<IChatModelProvider>(_ =>
         BaseAddress = new Uri("http://localhost:11434")
     }));
 builder.Services.AddSingleton<GenerationCancellationRegistry>();
+builder.Services.AddSingleton<ActiveModelSelectionStore>();
 builder.Services.AddSingleton<ICatalogSource>(_ =>
     new HuggingFaceCatalogSource(new HttpClient
     {

@@ -26,6 +26,64 @@ public sealed class HttpChatApiClient : IChatApiClient
         return await ReadRequiredJsonAsync<ModelListResponse>(response, cancellationToken);
     }
 
+    public async Task SelectActiveModelAsync(string modelId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+
+        using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+            "/api/models/active",
+            new SelectModelRequest(modelId),
+            SerializerOptions,
+            cancellationToken);
+        await ThrowIfErrorAsync(response, cancellationToken);
+    }
+
+    public async IAsyncEnumerable<ModelInstallationStreamResponse> InstallModelAsync(
+        string modelId,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+
+        using HttpRequestMessage request = new(HttpMethod.Post, "/api/models/install")
+        {
+            Content = JsonContent.Create(new InstallModelRequest(modelId), options: SerializerOptions)
+        };
+        using HttpResponseMessage response = await httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        await ThrowIfErrorAsync(response, cancellationToken);
+
+        await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using StreamReader reader = new(stream);
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            ModelInstallationStreamResponse? streamResponse =
+                JsonSerializer.Deserialize<ModelInstallationStreamResponse>(line, SerializerOptions);
+            if (streamResponse is null)
+            {
+                throw new InvalidOperationException("The model installation stream returned an empty event.");
+            }
+
+            yield return streamResponse;
+        }
+    }
+
+    public async Task RemoveModelAsync(string modelId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+
+        using HttpResponseMessage response = await httpClient.DeleteAsync($"/api/models/{Uri.EscapeDataString(modelId)}", cancellationToken);
+        await ThrowIfErrorAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken)
     {
         using HttpResponseMessage response = await httpClient.GetAsync("/api/conversations", cancellationToken);

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Zaphira.Application;
 using Zaphira.Application.Providers;
 using Zaphira.Contracts;
 using Zaphira.Domain;
@@ -137,6 +138,8 @@ public sealed class ChatApiTests
         Assert.NotNull(response);
         Assert.Equal("fake", response.ProviderId);
         Assert.Equal("Fake Provider", response.ProviderDisplayName);
+        Assert.True(response.HasActiveModel);
+        Assert.Equal("fake-chat", response.ActiveModelId);
         ModelResponse model = Assert.Single(response.Models);
         Assert.Equal("fake-chat", model.Id);
         Assert.Equal("Fake Chat", model.DisplayName);
@@ -157,7 +160,88 @@ public sealed class ChatApiTests
 
         Assert.NotNull(response);
         Assert.Equal("empty", response.ProviderId);
+        Assert.False(response.HasActiveModel);
+        Assert.Equal(ModelId.NoActiveModel.Value, response.ActiveModelId);
         Assert.Empty(response.Models);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task SelectActiveModelUpdatesModelListActiveModel()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory, new MultipleModelChatModelProvider());
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage selectResponse = await client.PostAsJsonAsync(
+            "/api/models/active",
+            new SelectModelRequest("fake-coder"));
+        ModelListResponse? modelList = await client.GetFromJsonAsync<ModelListResponse>("/api/models");
+
+        Assert.Equal(HttpStatusCode.NoContent, selectResponse.StatusCode);
+        Assert.NotNull(modelList);
+        Assert.True(modelList.HasActiveModel);
+        Assert.Equal("fake-coder", modelList.ActiveModelId);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task SelectActiveModelReturnsBadRequestForMissingModel()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/models/active",
+            new SelectModelRequest("missing-chat"));
+        ErrorResponse? error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(error);
+        Assert.Equal("model_not_found", error.Code);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task InstallModelStreamsProviderProgress()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory);
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/models/install",
+            new InstallModelRequest("fake-chat"));
+        string body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("\"kind\":\"progress\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"modelId\":\"fake-chat\"", body, StringComparison.Ordinal);
+        Assert.Contains("\"kind\":\"completed\"", body, StringComparison.Ordinal);
+
+        DeleteDirectoryIfItExists(homeDirectory);
+    }
+
+    [Fact]
+    public async Task RemoveModelDelegatesToProvider()
+    {
+        string homeDirectory = CreateTemporaryHomeDirectory();
+        FakeChatModelProvider provider = new();
+
+        await using ZaphiraServerApplicationFactory factory = new(homeDirectory, provider);
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage response = await client.DeleteAsync("/api/models/fake-chat");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(new ModelId("fake-chat"), provider.RemovedModelId);
 
         DeleteDirectoryIfItExists(homeDirectory);
     }
@@ -414,8 +498,10 @@ public sealed class ChatApiTests
         }
     }
 
-    private sealed class FakeChatModelProvider : IChatModelProvider
+    private class FakeChatModelProvider : IChatModelProvider
     {
+        private ModelId removedModelId = ModelId.NoActiveModel;
+
         public ProviderId Id { get; } = new("fake");
 
         public string DisplayName { get; } = "Fake Provider";
@@ -423,13 +509,36 @@ public sealed class ChatApiTests
         public ProviderCapabilities Capabilities { get; } =
             new([ProviderCapability.TextGeneration, ProviderCapability.StreamingGeneration]);
 
-        public Task<ProviderModelCatalog> ListModelsAsync(CancellationToken cancellationToken)
+        public ModelId RemovedModelId => removedModelId;
+
+        public virtual Task<ProviderModelCatalog> ListModelsAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             return Task.FromResult(new ProviderModelCatalog(
                 Id,
                 [new ProviderModelSummary(new ModelId("fake-chat"), "Fake Chat", Capabilities)]));
+        }
+
+        public async IAsyncEnumerable<ProviderModelInstallationEvent> InstallModelAsync(
+            ModelId modelId,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Task.Yield();
+            yield return new ProviderModelInstallationProgressEvent(modelId, "pulling manifest", 0, 100, true);
+            yield return ProviderModelInstallationCompletedEvent.Instance;
+        }
+
+        public Task<OperationResult> RemoveModelAsync(ModelId modelId, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+            removedModelId = modelId;
+
+            return Task.FromResult(OperationResult.Success());
         }
 
         public async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
@@ -456,6 +565,28 @@ public sealed class ChatApiTests
 
         public Task<ProviderModelCatalog> ListModelsAsync(CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            throw new HttpRequestException("Provider is unavailable.");
+        }
+
+        public async IAsyncEnumerable<ProviderModelInstallationEvent> InstallModelAsync(
+            ModelId modelId,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Task.Yield();
+            yield return new ProviderModelInstallationFailedEvent(new ProviderError(
+                "Provider.Unavailable",
+                "Provider is unavailable.",
+                "Start the provider and try again."));
+        }
+
+        public Task<OperationResult> RemoveModelAsync(ModelId modelId, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
             cancellationToken.ThrowIfCancellationRequested();
 
             throw new HttpRequestException("Provider is unavailable.");
@@ -492,6 +623,30 @@ public sealed class ChatApiTests
             return Task.FromResult(new ProviderModelCatalog(Id, []));
         }
 
+        public async IAsyncEnumerable<ProviderModelInstallationEvent> InstallModelAsync(
+            ModelId modelId,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Task.Yield();
+            yield return new ProviderModelInstallationFailedEvent(new ProviderError(
+                "Provider.InstallationFailed",
+                "Provider could not install the model.",
+                "Check provider status and try again."));
+        }
+
+        public Task<OperationResult> RemoveModelAsync(ModelId modelId, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(OperationResult.Failure(new ApplicationError(
+                "Provider.RemoveModelFailed",
+                "Provider could not remove the model.")));
+        }
+
         public async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
             ProviderGenerationRequest request,
             [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -501,6 +656,21 @@ public sealed class ChatApiTests
 
             await Task.Yield();
             yield return GenerationCompletedEvent.Instance;
+        }
+    }
+
+    private sealed class MultipleModelChatModelProvider : FakeChatModelProvider
+    {
+        public override Task<ProviderModelCatalog> ListModelsAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(new ProviderModelCatalog(
+                Id,
+                [
+                    new ProviderModelSummary(new ModelId("fake-chat"), "Fake Chat", Capabilities),
+                    new ProviderModelSummary(new ModelId("fake-coder"), "Fake Coder", Capabilities)
+                ]));
         }
     }
 }

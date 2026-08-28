@@ -227,6 +227,21 @@ public sealed class MainWindowViewModelTests
             return Task.FromResult(new ModelListResponse("fake", "Fake Provider", models));
         }
 
+        public Task SelectActiveModelAsync(string modelId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This test client does not select active models.");
+
+        public async IAsyncEnumerable<ModelInstallationStreamResponse> InstallModelAsync(
+            string modelId,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public Task RemoveModelAsync(string modelId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This test client does not remove models.");
+
         public Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();

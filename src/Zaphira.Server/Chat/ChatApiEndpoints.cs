@@ -15,6 +15,9 @@ internal static class ChatApiEndpoints
         RouteGroupBuilder group = endpoints.MapGroup("/api");
 
         group.MapGet("/models", GetModelsAsync);
+        group.MapPost("/models/active", SelectActiveModelAsync);
+        group.MapPost("/models/install", InstallModelAsync);
+        group.MapDelete("/models/{**modelId}", RemoveModelAsync);
         group.MapPost("/conversations", CreateConversationAsync);
         group.MapGet("/conversations", GetConversationsAsync);
         group.MapPatch("/conversations/{conversationId:guid}", RenameConversationAsync);
@@ -29,6 +32,7 @@ internal static class ChatApiEndpoints
 
     private static async Task<IResult> GetModelsAsync(
         IChatModelProvider provider,
+        ActiveModelSelectionStore activeModelSelectionStore,
         CancellationToken cancellationToken)
     {
         ProviderModelCatalog catalog;
@@ -41,10 +45,80 @@ internal static class ChatApiEndpoints
             return Results.Json(ErrorResponse.ProviderUnavailable(), statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
+        ModelId activeModelId = activeModelSelectionStore.GetActiveModel(catalog);
+
         return Results.Ok(new ModelListResponse(
             catalog.ProviderId.Value,
             provider.DisplayName,
-            catalog.Models.Select(ToResponse).ToArray()));
+            catalog.Models.Select(ToResponse).ToArray(),
+            activeModelId.Value,
+            activeModelId != ModelId.NoActiveModel));
+    }
+
+    private static async Task<IResult> SelectActiveModelAsync(
+        SelectModelRequest request,
+        IChatModelProvider provider,
+        ActiveModelSelectionStore activeModelSelectionStore,
+        CancellationToken cancellationToken)
+    {
+        ModelId modelId = new(request.ModelId);
+        ModelAvailability modelAvailability = await GetModelAvailabilityAsync(provider, modelId, cancellationToken);
+        if (modelAvailability is not ModelAvailability.Available)
+        {
+            return ToModelAvailabilityError(modelAvailability);
+        }
+
+        activeModelSelectionStore.Select(modelId);
+
+        return Results.NoContent();
+    }
+
+    private static async Task InstallModelAsync(
+        InstallModelRequest request,
+        HttpContext context,
+        IChatModelProvider provider)
+    {
+        ModelId modelId = new(request.ModelId);
+        context.Response.ContentType = "application/x-ndjson";
+
+        try
+        {
+            await foreach (ProviderModelInstallationEvent installationEvent in provider.InstallModelAsync(
+                modelId,
+                context.RequestAborted))
+            {
+                ModelInstallationStreamResponse response = ToResponse(modelId, installationEvent);
+                await WriteStreamEventAsync(context, response, context.RequestAborted);
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            await WriteStreamEventAsync(
+                context,
+                ModelInstallationStreamResponse.Failed(modelId.Value, ErrorResponse.ModelOperationFailed()),
+                context.RequestAborted);
+        }
+    }
+
+    private static async Task<IResult> RemoveModelAsync(
+        string modelId,
+        IChatModelProvider provider,
+        CancellationToken cancellationToken)
+    {
+        ModelId domainModelId = new(modelId);
+        OperationResult result;
+        try
+        {
+            result = await provider.RemoveModelAsync(domainModelId, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Results.Json(ErrorResponse.ProviderUnavailable(), statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return result.IsSuccess
+            ? Results.NoContent()
+            : Results.BadRequest(ErrorResponse.ModelOperationFailed());
     }
 
     private static async Task<IResult> CreateConversationAsync(
@@ -305,11 +379,14 @@ internal static class ChatApiEndpoints
         return Results.Ok();
     }
 
-    private static async Task WriteStreamEventAsync(
+    private static async Task WriteStreamEventAsync<TResponse>(
         HttpContext context,
-        GenerationStreamResponse response,
+        TResponse response,
         CancellationToken cancellationToken)
+        where TResponse : class
     {
+        ArgumentNullException.ThrowIfNull(response);
+
         await JsonSerializer.SerializeAsync(context.Response.Body, response, StreamSerializerOptions, cancellationToken);
         await context.Response.WriteAsync("\n", cancellationToken);
         await context.Response.Body.FlushAsync(cancellationToken);
@@ -338,6 +415,24 @@ internal static class ChatApiEndpoints
             model.Id.Value,
             model.DisplayName,
             model.Capabilities.Values.Select(capability => capability.ToString()).ToArray());
+
+    private static ModelInstallationStreamResponse ToResponse(
+        ModelId requestedModelId,
+        ProviderModelInstallationEvent installationEvent) =>
+        installationEvent switch
+        {
+            ProviderModelInstallationProgressEvent progress => ModelInstallationStreamResponse.Progress(
+                progress.ModelId.Value,
+                progress.Status,
+                progress.CompletedBytes,
+                progress.TotalBytes,
+                progress.HasKnownTotalBytes),
+            ProviderModelInstallationCompletedEvent => ModelInstallationStreamResponse.Completed(requestedModelId.Value),
+            ProviderModelInstallationFailedEvent failed => ModelInstallationStreamResponse.Failed(
+                requestedModelId.Value,
+                new ErrorResponse(failed.Error.Code, failed.Error.Message, failed.Error.Suggestion)),
+            _ => ModelInstallationStreamResponse.Failed(requestedModelId.Value, ErrorResponse.ModelOperationFailed())
+        };
 
     private static async Task<bool> ConversationExistsAsync(
         IConversationRepository conversationRepository,

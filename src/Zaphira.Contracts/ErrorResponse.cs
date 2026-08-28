@@ -19,6 +19,9 @@ public sealed record ErrorResponse
 
     public string Suggestion { get; }
 
+    public static ErrorResponse None() =>
+        new("none", "No error.", "No action required.");
+
     public static ErrorResponse RouteNotFound() =>
         new("route_not_found", "No endpoint matches the request.", "Check the endpoint path and HTTP method.");
 
@@ -30,6 +33,9 @@ public sealed record ErrorResponse
 
     public static ErrorResponse ModelNotFound() =>
         new("model_not_found", "The selected model is not available.", "Choose an installed model and try again.");
+
+    public static ErrorResponse ModelOperationFailed() =>
+        new("model_operation_failed", "The model operation failed.", "Check disk space, network access, and provider status, then try again.");
 
     public static ErrorResponse ProviderUnavailable() =>
         new("provider_unavailable", "The model provider is unavailable.", "Start the provider, go online if needed, then try again.");

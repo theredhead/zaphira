@@ -319,18 +319,18 @@
 
 ## 16. Model Management
 
-- [ ] List installed models.
-- [ ] Select active/default model.
-- [ ] Install/download model through provider-specific mechanism.
-- [ ] Show installation progress where available.
-- [ ] Cancel installation where supported.
-- [ ] Remove installed models.
-- [ ] Handle disk/network/provider failures.
-- [ ] Keep provider-specific mechanics behind provider abstractions.
+- [x] List installed models.
+- [x] Select active/default model.
+- [x] Install/download model through provider-specific mechanism.
+- [x] Show installation progress where available.
+- [x] Cancel installation where supported.
+- [x] Remove installed models.
+- [x] Handle disk/network/provider failures.
+- [x] Keep provider-specific mechanics behind provider abstractions.
 
 **Done when:**
 
-- [ ] Users can see and manage installed local models without understanding provider internals.
+- [x] Users can see and manage installed local models without understanding provider internals.
 
 ---
 

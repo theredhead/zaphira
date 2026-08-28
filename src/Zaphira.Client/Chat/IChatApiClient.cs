@@ -6,6 +6,14 @@ public interface IChatApiClient
 {
     Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken);
 
+    Task SelectActiveModelAsync(string modelId, CancellationToken cancellationToken);
+
+    IAsyncEnumerable<ModelInstallationStreamResponse> InstallModelAsync(
+        string modelId,
+        CancellationToken cancellationToken);
+
+    Task RemoveModelAsync(string modelId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken);
 
     Task<ConversationResponse> CreateConversationAsync(string title, CancellationToken cancellationToken);

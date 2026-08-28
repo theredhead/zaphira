@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Zaphira.Application;
 using Zaphira.Application.Providers;
 using Zaphira.Domain;
 
@@ -57,6 +58,35 @@ public sealed class FakeChatModelProviderTests
     }
 
     [Fact]
+    public async Task InstallModelAsyncReturnsProgressAndCompletion()
+    {
+        FakeChatModelProvider provider = new();
+
+        List<ProviderModelInstallationEvent> events = [];
+        await foreach (ProviderModelInstallationEvent installationEvent in provider.InstallModelAsync(
+            new ModelId("fake-chat"),
+            CancellationToken.None))
+        {
+            events.Add(installationEvent);
+        }
+
+        ProviderModelInstallationProgressEvent progress = Assert.IsType<ProviderModelInstallationProgressEvent>(events[0]);
+        Assert.Equal(new ModelId("fake-chat"), progress.ModelId);
+        Assert.Equal("Installing", progress.Status);
+        Assert.IsType<ProviderModelInstallationCompletedEvent>(events[1]);
+    }
+
+    [Fact]
+    public async Task RemoveModelAsyncReturnsSuccess()
+    {
+        FakeChatModelProvider provider = new();
+
+        OperationResult result = await provider.RemoveModelAsync(new ModelId("fake-chat"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
     public void GenerationRequestRejectsEmptyMessages()
     {
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
@@ -106,6 +136,26 @@ public sealed class FakeChatModelProviderTests
                 new ProviderCapabilities([ProviderCapability.TextGeneration, ProviderCapability.StreamingGeneration]));
 
             return Task.FromResult(new ProviderModelCatalog(Id, [model]));
+        }
+
+        public async IAsyncEnumerable<ProviderModelInstallationEvent> InstallModelAsync(
+            ModelId modelId,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Task.Yield();
+            yield return new ProviderModelInstallationProgressEvent(modelId, "Installing", 1, 2, true);
+            yield return ProviderModelInstallationCompletedEvent.Instance;
+        }
+
+        public Task<OperationResult> RemoveModelAsync(ModelId modelId, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return Task.FromResult(OperationResult.Success());
         }
 
         public async IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(

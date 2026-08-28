@@ -12,13 +12,17 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
     private readonly IChatApiClient chatApiClient;
     private readonly CancellationTokenSource lifetimeCancellation = new();
     private CancellationTokenSource activeGenerationCancellation = new();
+    private CancellationTokenSource activeInstallationCancellation = new();
     private ConversationItemViewModel selectedConversation = ConversationItemViewModel.Empty;
     private string composerText = string.Empty;
     private string selectedConversationTitle = string.Empty;
     private string statusText = "Ready";
+    private string modelManagementStatusText = "Installed models not loaded.";
+    private string modelToInstallId = string.Empty;
     private string activeModelId = DefaultModelId;
     private bool isLoading;
     private bool isStreaming;
+    private bool isInstallingModel;
     private bool isConfirmingDelete;
 
     public ChatWorkspaceViewModel(IChatApiClient chatApiClient)
@@ -28,11 +32,14 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
         this.chatApiClient = chatApiClient;
         Conversations = [];
         Messages = [];
+        InstalledModels = [];
     }
 
     public ObservableCollection<ConversationItemViewModel> Conversations { get; }
 
     public ObservableCollection<ChatMessageViewModel> Messages { get; }
+
+    public ObservableCollection<InstalledModelItemViewModel> InstalledModels { get; }
 
     public Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken) =>
         chatApiClient.GetInstalledModelsAsync(cancellationToken);
@@ -83,6 +90,26 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
         }
     }
 
+    public string ModelManagementStatusText
+    {
+        get => modelManagementStatusText;
+        private set
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
+            SetProperty(ref modelManagementStatusText, value);
+        }
+    }
+
+    public string ModelToInstallId
+    {
+        get => modelToInstallId;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            SetProperty(ref modelToInstallId, value);
+        }
+    }
+
     public string ActiveModelId
     {
         get => activeModelId;
@@ -103,6 +130,12 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
     {
         get => isStreaming;
         private set => SetProperty(ref isStreaming, value);
+    }
+
+    public bool IsInstallingModel
+    {
+        get => isInstallingModel;
+        private set => SetProperty(ref isInstallingModel, value);
     }
 
     public bool IsConfirmingDelete
@@ -154,6 +187,134 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task RefreshInstalledModelsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            ModelListResponse response = await chatApiClient.GetInstalledModelsAsync(cancellationToken);
+            ApplyInstalledModels(response);
+            ModelManagementStatusText = response.Models.Count == 0
+                ? "No installed models."
+                : $"{response.Models.Count} installed model(s).";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            ModelManagementStatusText = ToStatusText(exception);
+        }
+    }
+
+    public void ApplyInstalledModels(ModelListResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        InstalledModels.Clear();
+        foreach (ModelResponse model in response.Models)
+        {
+            InstalledModels.Add(new InstalledModelItemViewModel(model, response.ActiveModelId));
+        }
+
+        if (response.HasActiveModel)
+        {
+            ActiveModelId = response.ActiveModelId;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SelectInstalledModelAsync(InstalledModelItemViewModel model, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        try
+        {
+            await chatApiClient.SelectActiveModelAsync(model.Id, cancellationToken);
+            ActiveModelId = model.Id;
+            foreach (InstalledModelItemViewModel installedModel in InstalledModels)
+            {
+                installedModel.MarkActive(installedModel.Id == model.Id);
+            }
+
+            ModelManagementStatusText = $"{model.DisplayName} selected.";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            ModelManagementStatusText = ToStatusText(exception);
+        }
+    }
+
+    [RelayCommand]
+    public async Task InstallModelAsync(CancellationToken cancellationToken)
+    {
+        string modelId = ModelToInstallId.Trim();
+        if (string.IsNullOrWhiteSpace(modelId) || IsInstallingModel)
+        {
+            return;
+        }
+
+        CancellationToken linkedCancellationToken = cancellationToken == CancellationToken.None
+            ? lifetimeCancellation.Token
+            : cancellationToken;
+
+        activeInstallationCancellation.Dispose();
+        activeInstallationCancellation = CancellationTokenSource.CreateLinkedTokenSource(linkedCancellationToken);
+        IsInstallingModel = true;
+        ModelManagementStatusText = "Starting installation.";
+
+        try
+        {
+            await foreach (ModelInstallationStreamResponse response in chatApiClient.InstallModelAsync(
+                modelId,
+                activeInstallationCancellation.Token))
+            {
+                ApplyInstallationResponse(response);
+            }
+
+            await RefreshInstalledModelsAsync(linkedCancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            ModelManagementStatusText = ToStatusText(exception);
+        }
+        finally
+        {
+            IsInstallingModel = false;
+        }
+    }
+
+    [RelayCommand]
+    public void CancelModelInstallation()
+    {
+        if (!IsInstallingModel)
+        {
+            return;
+        }
+
+        activeInstallationCancellation.Cancel();
+        ModelManagementStatusText = "Installation cancelled.";
+        IsInstallingModel = false;
+    }
+
+    [RelayCommand]
+    public async Task RemoveInstalledModelAsync(InstalledModelItemViewModel model, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        try
+        {
+            await chatApiClient.RemoveModelAsync(model.Id, cancellationToken);
+            InstalledModels.Remove(model);
+            ModelManagementStatusText = $"{model.DisplayName} removed.";
+            if (model.Id == ActiveModelId)
+            {
+                await RefreshInstalledModelsAsync(cancellationToken);
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            ModelManagementStatusText = ToStatusText(exception);
         }
     }
 
@@ -375,6 +536,29 @@ public partial class ChatWorkspaceViewModel : ViewModelBase
                 break;
             default:
                 assistantMessage.AppendText($"[{streamResponse.Kind}] {streamResponse.Text}");
+                break;
+        }
+    }
+
+    private void ApplyInstallationResponse(ModelInstallationStreamResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        switch (response.Kind)
+        {
+            case "progress":
+                ModelManagementStatusText = response.HasKnownTotalBytes
+                    ? $"{response.Status}: {response.CompletedBytes} / {response.TotalBytes} bytes"
+                    : response.Status;
+                break;
+            case "completed":
+                ModelManagementStatusText = $"{response.ModelId} installed.";
+                break;
+            case "failed":
+                ModelManagementStatusText = $"{response.Error.Message} {response.Error.Suggestion}";
+                break;
+            default:
+                ModelManagementStatusText = response.Status;
                 break;
         }
     }

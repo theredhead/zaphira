@@ -101,6 +101,85 @@ public sealed class ChatWorkspaceViewModelTests
     }
 
     [Fact]
+    public async Task RefreshInstalledModelsAppliesActiveModel()
+    {
+        FakeChatApiClient chatApiClient = new(
+            installedModels: new ModelListResponse(
+                "fake",
+                "Fake Provider",
+                [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])],
+                "fake-chat",
+                hasActiveModel: true));
+        ChatWorkspaceViewModel viewModel = new(chatApiClient);
+
+        await viewModel.RefreshInstalledModelsAsync(CancellationToken.None);
+
+        InstalledModelItemViewModel model = Assert.Single(viewModel.InstalledModels);
+        Assert.Equal("fake-chat", viewModel.ActiveModelId);
+        Assert.True(model.IsActive);
+    }
+
+    [Fact]
+    public async Task SelectInstalledModelUpdatesActiveModel()
+    {
+        FakeChatApiClient chatApiClient = new();
+        ChatWorkspaceViewModel viewModel = new(chatApiClient);
+        await viewModel.RefreshInstalledModelsAsync(CancellationToken.None);
+        InstalledModelItemViewModel model = Assert.Single(viewModel.InstalledModels);
+
+        await viewModel.SelectInstalledModelAsync(model, CancellationToken.None);
+
+        Assert.Equal(1, chatApiClient.SelectActiveModelCallCount);
+        Assert.Equal("fake-chat", viewModel.ActiveModelId);
+        Assert.True(model.IsActive);
+    }
+
+    [Fact]
+    public async Task InstallModelShowsProgressAndRefreshesInstalledModels()
+    {
+        FakeChatApiClient chatApiClient = new(
+            installationResponses:
+            [
+                ModelInstallationStreamResponse.Progress("new-model", "downloading", 10, 20, true),
+                ModelInstallationStreamResponse.Completed("new-model")
+            ]);
+        ChatWorkspaceViewModel viewModel = new(chatApiClient)
+        {
+            ModelToInstallId = "new-model"
+        };
+
+        await viewModel.InstallModelAsync(CancellationToken.None);
+
+        Assert.Equal(1, chatApiClient.InstallModelCallCount);
+        Assert.False(viewModel.IsInstallingModel);
+        Assert.Single(viewModel.InstalledModels);
+    }
+
+    [Fact]
+    public async Task RemoveInstalledModelRemovesItem()
+    {
+        FakeChatApiClient chatApiClient = new(
+            installedModels: new ModelListResponse(
+                "fake",
+                "Fake Provider",
+                [
+                    new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"]),
+                    new ModelResponse("fake-coder", "Fake Coder", ["TextGeneration"])
+                ],
+                "fake-chat",
+                hasActiveModel: true));
+        ChatWorkspaceViewModel viewModel = new(chatApiClient);
+        await viewModel.RefreshInstalledModelsAsync(CancellationToken.None);
+        InstalledModelItemViewModel model = viewModel.InstalledModels.Single(installedModel => installedModel.Id == "fake-coder");
+
+        await viewModel.RemoveInstalledModelAsync(model, CancellationToken.None);
+
+        Assert.Equal(1, chatApiClient.RemoveModelCallCount);
+        Assert.DoesNotContain(viewModel.InstalledModels, installedModel => installedModel.Id == "fake-coder");
+    }
+
+
+    [Fact]
     public async Task RenameConversationUpdatesSelectedConversationTitle()
     {
         Guid conversationId = Guid.NewGuid();
@@ -260,6 +339,8 @@ public sealed class ChatWorkspaceViewModelTests
         private readonly ConversationResponse renamedConversation;
         private readonly SendMessageResponse sendMessageResponse;
         private readonly IReadOnlyList<GenerationStreamResponse> streamResponses;
+        private readonly ModelListResponse installedModels;
+        private readonly IReadOnlyList<ModelInstallationStreamResponse> installationResponses;
         private readonly ChatApiException failure;
 
         public FakeChatApiClient(
@@ -269,6 +350,8 @@ public sealed class ChatWorkspaceViewModelTests
             ConversationResponse? renamedConversation = null,
             SendMessageResponse? sendMessageResponse = null,
             IReadOnlyList<GenerationStreamResponse>? streamResponses = null,
+            ModelListResponse? installedModels = null,
+            IReadOnlyList<ModelInstallationStreamResponse>? installationResponses = null,
             ChatApiException? failure = null)
         {
             this.conversations = conversations ?? [];
@@ -280,6 +363,15 @@ public sealed class ChatWorkspaceViewModelTests
             this.sendMessageResponse = sendMessageResponse
                 ?? new SendMessageResponse(Guid.NewGuid(), Guid.NewGuid());
             this.streamResponses = streamResponses ?? [GenerationStreamResponse.Completed()];
+            this.installedModels = installedModels
+                ?? new ModelListResponse(
+                    "fake",
+                    "Fake Provider",
+                    [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])],
+                    "fake-chat",
+                    hasActiveModel: true);
+            this.installationResponses = installationResponses
+                ?? [ModelInstallationStreamResponse.Completed("fake-chat")];
             this.failure = failure ?? ChatApiException.None;
         }
 
@@ -291,15 +383,54 @@ public sealed class ChatWorkspaceViewModelTests
 
         public int SendMessageCallCount { get; private set; }
 
+        public int SelectActiveModelCallCount { get; private set; }
+
+        public int InstallModelCallCount { get; private set; }
+
+        public int RemoveModelCallCount { get; private set; }
+
         public Task<ModelListResponse> GetInstalledModelsAsync(CancellationToken cancellationToken)
         {
             ThrowFailureIfNeeded();
             cancellationToken.ThrowIfCancellationRequested();
 
-            return Task.FromResult(new ModelListResponse(
-                "fake",
-                "Fake Provider",
-                [new ModelResponse("fake-chat", "Fake Chat", ["TextGeneration"])]));
+            return Task.FromResult(installedModels);
+        }
+
+        public Task SelectActiveModelAsync(string modelId, CancellationToken cancellationToken)
+        {
+            ThrowFailureIfNeeded();
+            ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+            SelectActiveModelCallCount++;
+
+            return Task.CompletedTask;
+        }
+
+        public async IAsyncEnumerable<ModelInstallationStreamResponse> InstallModelAsync(
+            string modelId,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            ThrowFailureIfNeeded();
+            ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+            InstallModelCallCount++;
+
+            foreach (ModelInstallationStreamResponse response in installationResponses)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Yield();
+                yield return response;
+            }
+        }
+
+        public Task RemoveModelAsync(string modelId, CancellationToken cancellationToken)
+        {
+            ThrowFailureIfNeeded();
+            ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemoveModelCallCount++;
+
+            return Task.CompletedTask;
         }
 
         public Task<IReadOnlyList<ConversationResponse>> GetConversationsAsync(CancellationToken cancellationToken)

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Zaphira.Application;
 using Zaphira.Application.Providers;
 using Zaphira.Domain;
 using Zaphira.Infrastructure.Providers.Ollama;
@@ -130,6 +131,98 @@ public sealed class OllamaChatModelProviderTests
             {
             }
         });
+    }
+
+    [Fact]
+    public async Task InstallModelAsyncStreamsProgressAndCompletionEvents()
+    {
+        FakeHttpMessageHandler handler = new((request, _) => Task.FromResult(
+            request.RequestUri!.AbsolutePath == "/api/pull"
+                ? StreamResponse(
+                    """
+                    {"status":"pulling manifest"}
+                    {"status":"downloading digest","completed":42,"total":100}
+                    {"status":"success"}
+                    """)
+                : JsonResponse(HttpStatusCode.NotFound, "{}")));
+        OllamaChatModelProvider provider = CreateProvider(handler);
+
+        List<ProviderModelInstallationEvent> events = [];
+        await foreach (ProviderModelInstallationEvent installationEvent in provider.InstallModelAsync(
+            new ModelId("llama3.2"),
+            CancellationToken.None))
+        {
+            events.Add(installationEvent);
+        }
+
+        ProviderModelInstallationProgressEvent first = Assert.IsType<ProviderModelInstallationProgressEvent>(events[0]);
+        ProviderModelInstallationProgressEvent second = Assert.IsType<ProviderModelInstallationProgressEvent>(events[1]);
+        Assert.Equal("pulling manifest", first.Status);
+        Assert.False(first.HasKnownTotalBytes);
+        Assert.Equal(42, second.CompletedBytes);
+        Assert.Equal(100, second.TotalBytes);
+        Assert.True(second.HasKnownTotalBytes);
+        Assert.IsType<ProviderModelInstallationCompletedEvent>(events[2]);
+    }
+
+    [Fact]
+    public async Task InstallModelAsyncReturnsFailureEventForProviderError()
+    {
+        FakeHttpMessageHandler handler = new((request, _) => Task.FromResult(
+            request.RequestUri!.AbsolutePath == "/api/pull"
+                ? StreamResponse("""{"error":"not enough disk space"}""")
+                : JsonResponse(HttpStatusCode.NotFound, "{}")));
+        OllamaChatModelProvider provider = CreateProvider(handler);
+
+        List<ProviderModelInstallationEvent> events = [];
+        await foreach (ProviderModelInstallationEvent installationEvent in provider.InstallModelAsync(
+            new ModelId("llama3.2"),
+            CancellationToken.None))
+        {
+            events.Add(installationEvent);
+        }
+
+        ProviderModelInstallationFailedEvent failed = Assert.IsType<ProviderModelInstallationFailedEvent>(Assert.Single(events));
+        Assert.Equal("Ollama.InstallationFailed", failed.Error.Code);
+        Assert.Equal("not enough disk space", failed.Error.Suggestion);
+    }
+
+    [Fact]
+    public async Task RemoveModelAsyncSendsDeleteRequest()
+    {
+        HttpMethod requestedMethod = HttpMethod.Get;
+        string requestedPath = string.Empty;
+        string requestBody = string.Empty;
+        FakeHttpMessageHandler handler = new(async (request, cancellationToken) =>
+        {
+            requestedMethod = request.Method;
+            requestedPath = request.RequestUri!.AbsolutePath;
+            requestBody = request.Content is null
+                ? string.Empty
+                : await request.Content.ReadAsStringAsync(cancellationToken);
+
+            return JsonResponse(HttpStatusCode.OK, "{}");
+        });
+        OllamaChatModelProvider provider = CreateProvider(handler);
+
+        OperationResult result = await provider.RemoveModelAsync(new ModelId("llama3.2"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(HttpMethod.Delete, requestedMethod);
+        Assert.Equal("/api/delete", requestedPath);
+        Assert.Contains("llama3.2", requestBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RemoveModelAsyncReturnsFailureForProviderError()
+    {
+        FakeHttpMessageHandler handler = new((_, _) => Task.FromResult(JsonResponse(HttpStatusCode.InternalServerError, "{}")));
+        OllamaChatModelProvider provider = CreateProvider(handler);
+
+        OperationResult result = await provider.RemoveModelAsync(new ModelId("llama3.2"), CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("Ollama.RemoveModelFailed", result.Error.Code);
     }
 
     private static OllamaChatModelProvider CreateProvider(HttpMessageHandler handler) =>

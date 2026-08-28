@@ -201,6 +201,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        ChatWorkspace.ApplyInstalledModels(models);
         await ChatWorkspace.LoadAsync(cancellationToken);
     }
 }

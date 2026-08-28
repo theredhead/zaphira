@@ -12,6 +12,12 @@ public interface IChatModelProvider
 
     Task<ProviderModelCatalog> ListModelsAsync(CancellationToken cancellationToken);
 
+    IAsyncEnumerable<ProviderModelInstallationEvent> InstallModelAsync(
+        ModelId modelId,
+        CancellationToken cancellationToken);
+
+    Task<OperationResult> RemoveModelAsync(ModelId modelId, CancellationToken cancellationToken);
+
     IAsyncEnumerable<ProviderGenerationEvent> GenerateAsync(
         ProviderGenerationRequest request,
         CancellationToken cancellationToken);
